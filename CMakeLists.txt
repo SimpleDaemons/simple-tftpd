@@ -51,27 +51,27 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Find required packages
 find_package(PkgConfig REQUIRED)
 
-# Find jsoncpp for JSON parsing
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP jsoncpp)
-if(NOT JSONCPP_FOUND)
-    # Try to find jsoncpp without pkg-config
-    find_library(JSONCPP_LIBRARIES jsoncpp)
-    find_path(JSONCPP_INCLUDE_DIRS json/json.h)
-    if(JSONCPP_LIBRARIES AND JSONCPP_INCLUDE_DIRS)
-        set(JSONCPP_FOUND TRUE)
-        set(JSONCPP_LIBRARIES ${JSONCPP_LIBRARIES})
-        set(JSONCPP_INCLUDE_DIRS ${JSONCPP_INCLUDE_DIRS})
-    endif()
-endif()
+# Find jsoncpp for JSON parsing (optional for now)
+# Temporarily disabled to ensure basic build works
+# find_package(PkgConfig QUIET)
+# if(PkgConfig_FOUND)
+#     pkg_check_modules(JSONCPP jsoncpp)
+# endif()
+# 
+# if(NOT JSONCPP_FOUND)
+#     # Try to find jsoncpp without pkg-config
+#     find_library(JSONCPP_LIBRARIES jsoncpp)
+#     find_path(JSONCPP_INCLUDE_DIRS json/json.h)
+#     if(JSONCPP_LIBRARIES AND JSONCPP_INCLUDE_DIRS)
+#         set(JSONCPP_FOUND TRUE)
+#         set(JSONCPP_LIBRARIES ${JSONCPP_LIBRARIES})
+#         set(JSONCPP_INCLUDE_DIRS ${JSONCPP_INCLUDE_DIRS})
+# endif()
+# endif()
 
-if(NOT JSONCPP_FOUND)
-    message(WARNING "jsoncpp not found. JSON configuration parsing will not be available.")
-    add_definitions(-DDISABLE_JSON_CONFIG)
-else()
-    message(STATUS "Found jsoncpp: ${JSONCPP_LIBRARIES}")
-    add_definitions(-DENABLE_JSON_CONFIG)
-endif()
+set(JSONCPP_FOUND FALSE)
+message(STATUS "jsoncpp temporarily disabled for basic build")
+add_definitions(-DDISABLE_JSON_CONFIG)
 
 # Platform-specific library handling
 if(PLATFORM_MACOS)
