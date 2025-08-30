@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/simple-tftpd-targets.cmake")
+
+check_required_components(simple-tftpd)
