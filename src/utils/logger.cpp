@@ -33,8 +33,6 @@ Logger::Logger(const std::string& log_file, LogLevel level, bool enable_console)
             log_file_.clear();
         }
     }
-    
-    start_time_ = std::chrono::steady_clock::now();
 }
 
 Logger::~Logger() {
