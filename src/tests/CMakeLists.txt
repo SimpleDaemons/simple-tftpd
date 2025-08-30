@@ -24,7 +24,7 @@ if(GTest_FOUND)
     # Test source files
     set(TEST_SOURCES
         test_main.cpp
-        test_helpers.cpp
+        utils/test_helpers.cpp
     )
     
     # Test executable
