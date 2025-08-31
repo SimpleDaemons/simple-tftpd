@@ -1,0 +1,93 @@
+# Multi-Tenant TFTP Server Configuration
+# Configuration for serving multiple isolated environments
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+{
+    "network": {
+        "listen_address": "0.0.0.0",
+        "listen_port": 69,
+        "ipv6_enabled": true
+    },
+    
+    "tenants": {
+        "default": {
+            "filesystem": {
+                "root_directory": "/var/tftp/default",
+                "allowed_directories": ["/var/tftp/default/public"]
+            },
+            "security": {
+                "read_enabled": true,
+                "write_enabled": false,
+                "max_file_size": 104857600
+            }
+        },
+        "development": {
+            "filesystem": {
+                "root_directory": "/var/tftp/dev",
+                "allowed_directories": [
+                    "/var/tftp/dev/builds",
+                    "/var/tftp/dev/test"
+                ]
+            },
+            "security": {
+                "read_enabled": true,
+                "write_enabled": true,
+                "max_file_size": 104857600,
+                "allowed_networks": ["192.168.1.0/24"]
+            }
+        },
+        "production": {
+            "filesystem": {
+                "root_directory": "/var/tftp/prod",
+                "allowed_directories": [
+                    "/var/tftp/prod/releases",
+                    "/var/tftp/prod/updates"
+                ]
+            },
+            "security": {
+                "read_enabled": true,
+                "write_enabled": false,
+                "max_file_size": 1073741824,
+                "allowed_networks": ["10.0.0.0/8"]
+            }
+        },
+        "testing": {
+            "filesystem": {
+                "root_directory": "/var/tftp/test",
+                "allowed_directories": ["/var/tftp/test/suites"]
+            },
+            "security": {
+                "read_enabled": true,
+                "write_enabled": true,
+                "max_file_size": 104857600,
+                "allowed_networks": ["172.16.0.0/12"]
+            }
+        }
+    },
+    
+    "performance": {
+        "block_size": 1024,
+        "timeout": 5,
+        "window_size": 4,
+        "max_connections": 200
+    },
+    
+    "logging": {
+        "level": "INFO",
+        "log_file": "/var/log/tftp-multi.log",
+        "console_logging": false,
+        "tenant_logging": true,
+        "log_rotation": {
+            "max_size": "50MB",
+            "max_files": 10
+        }
+    },
+    
+    "monitoring": {
+        "metrics_enabled": true,
+        "tenant_metrics": true,
+        "usage_tracking": true,
+        "quota_enforcement": true
+    }
+}

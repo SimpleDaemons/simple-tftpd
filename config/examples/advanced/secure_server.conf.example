@@ -1,0 +1,77 @@
+# Secure TFTP Server Configuration
+# Advanced security features and access control
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+{
+    "network": {
+        "listen_address": "0.0.0.0",
+        "listen_port": 69,
+        "ipv6_enabled": true,
+        "bind_interfaces": ["eth0", "eth1"]
+    },
+    
+    "filesystem": {
+        "root_directory": "/var/tftp",
+        "allowed_directories": [
+            "/var/tftp/public",
+            "/var/tftp/restricted",
+            "/var/tftp/admin"
+        ],
+        "denied_directories": [
+            "/var/tftp/private",
+            "/var/tftp/system"
+        ]
+    },
+    
+    "security": {
+        "read_enabled": true,
+        "write_enabled": true,
+        "max_file_size": 104857600,
+        "overwrite_protection": true,
+        "file_extension_whitelist": [
+            ".bin", ".img", ".iso", ".tar", ".gz", ".zip"
+        ],
+        "file_extension_blacklist": [
+            ".exe", ".bat", ".sh", ".py", ".php"
+        ],
+        "access_control": {
+            "allowed_networks": [
+                "192.168.1.0/24",
+                "10.0.0.0/8",
+                "172.16.0.0/12"
+            ],
+            "denied_networks": [
+                "0.0.0.0/0"
+            ]
+        }
+    },
+    
+    "performance": {
+        "block_size": 1024,
+        "timeout": 5,
+        "window_size": 4,
+        "max_connections": 100,
+        "connection_timeout": 300
+    },
+    
+    "logging": {
+        "level": "INFO",
+        "log_file": "/var/log/tftp-secure.log",
+        "console_logging": false,
+        "syslog_enabled": true,
+        "syslog_facility": "local0",
+        "log_rotation": {
+            "max_size": "10MB",
+            "max_files": 5,
+            "compress": true
+        }
+    },
+    
+    "monitoring": {
+        "metrics_enabled": true,
+        "health_check_interval": 60,
+        "performance_counters": true,
+        "transfer_statistics": true
+    }
+}

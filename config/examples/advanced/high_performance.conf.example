@@ -1,0 +1,70 @@
+# High Performance TFTP Server Configuration
+# Optimized for maximum throughput and efficiency
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+{
+    "network": {
+        "listen_address": "0.0.0.0",
+        "listen_port": 69,
+        "ipv6_enabled": true,
+        "tcp_nodelay": true,
+        "socket_buffer_size": 65536
+    },
+    
+    "filesystem": {
+        "root_directory": "/var/tftp",
+        "allowed_directories": [
+            "/var/tftp/public",
+            "/var/tftp/fast",
+            "/var/tftp/cache"
+        ],
+        "cache_enabled": true,
+        "cache_size": "1GB",
+        "cache_ttl": 3600
+    },
+    
+    "security": {
+        "read_enabled": true,
+        "write_enabled": true,
+        "max_file_size": 1073741824,
+        "overwrite_protection": false
+    },
+    
+    "performance": {
+        "block_size": 8192,
+        "timeout": 3,
+        "window_size": 16,
+        "max_connections": 1000,
+        "connection_timeout": 180,
+        "thread_pool_size": 16,
+        "async_io": true,
+        "memory_pool_size": "512MB",
+        "transfer_buffer_size": 65536
+    },
+    
+    "logging": {
+        "level": "WARNING",
+        "log_file": "/var/log/tftp-perf.log",
+        "console_logging": false,
+        "async_logging": true,
+        "log_buffer_size": 8192
+    },
+    
+    "monitoring": {
+        "metrics_enabled": true,
+        "performance_counters": true,
+        "transfer_statistics": true,
+        "resource_monitoring": true,
+        "benchmark_mode": false
+    },
+    
+    "tuning": {
+        "kernel_tuning": {
+            "tcp_window_scaling": true,
+            "tcp_congestion_control": "bbr",
+            "udp_rmem_max": 134217728,
+            "udp_wmem_max": 134217728
+        }
+    }
+}

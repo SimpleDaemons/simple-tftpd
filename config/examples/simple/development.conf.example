@@ -1,0 +1,37 @@
+# Development TFTP Server Configuration
+# Configuration optimized for development and testing
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+{
+    "network": {
+        "listen_address": "127.0.0.1",
+        "listen_port": 6969,
+        "ipv6_enabled": false
+    },
+    
+    "filesystem": {
+        "root_directory": "./tftp-files",
+        "allowed_directories": [
+            "./tftp-files",
+            "./test-files"
+        ]
+    },
+    
+    "security": {
+        "read_enabled": true,
+        "write_enabled": true,
+        "max_file_size": 10485760
+    },
+    
+    "performance": {
+        "block_size": 512,
+        "timeout": 10
+    },
+    
+    "logging": {
+        "level": "DEBUG",
+        "log_file": "./tftp-dev.log",
+        "console_logging": true
+    }
+}

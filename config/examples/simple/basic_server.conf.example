@@ -1,0 +1,25 @@
+# Basic TFTP Server Configuration
+# Minimal configuration for basic TFTP server
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+{
+    "network": {
+        "listen_address": "0.0.0.0",
+        "listen_port": 69
+    },
+    
+    "filesystem": {
+        "root_directory": "/var/tftp"
+    },
+    
+    "security": {
+        "read_enabled": true,
+        "write_enabled": false
+    },
+    
+    "logging": {
+        "level": "INFO",
+        "console_logging": true
+    }
+}
