@@ -1,0 +1,38 @@
+# Read-Only TFTP Server Configuration
+# Secure configuration for read-only file serving
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+{
+    "network": {
+        "listen_address": "0.0.0.0",
+        "listen_port": 69,
+        "ipv6_enabled": true
+    },
+    
+    "filesystem": {
+        "root_directory": "/var/tftp",
+        "allowed_directories": [
+            "/var/tftp/public",
+            "/var/tftp/firmware",
+            "/var/tftp/iso"
+        ]
+    },
+    
+    "security": {
+        "read_enabled": true,
+        "write_enabled": false,
+        "overwrite_protection": true
+    },
+    
+    "performance": {
+        "block_size": 512,
+        "timeout": 5
+    },
+    
+    "logging": {
+        "level": "INFO",
+        "log_file": "/var/log/tftp-readonly.log",
+        "console_logging": false
+    }
+}

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Simple TFTP Daemon macOS Build Script
 # Copyright 2024 SimpleDaemons
 # Licensed under Apache License 2.0
