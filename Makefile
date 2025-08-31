@@ -204,6 +204,28 @@ else
 	@echo "ZIP packages are only supported on Windows"
 endif
 
+# Package DMG (macOS only)
+package-dmg: build
+ifeq ($(PLATFORM),macos)
+	@echo "Building DMG package..."
+	@$(MKDIR) $(DIST_DIR)
+	cd $(BUILD_DIR) && cpack -G DragNDrop
+	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/
+else
+	@echo "DMG packages are only supported on macOS"
+endif
+
+# Package PKG (macOS only)
+package-pkg: build
+ifeq ($(PLATFORM),macos)
+	@echo "Building PKG package..."
+	@$(MKDIR) $(DIST_DIR)
+	cd $(BUILD_DIR) && cpack -G productbuild
+	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg $(DIST_DIR)/
+else
+	@echo "PKG packages are only supported on macOS"
+endif
+
 # Package using build scripts (recommended)
 package-script:
 ifeq ($(PLATFORM),macos)
@@ -222,9 +244,11 @@ endif
 # Package all formats
 package-all: 
 ifeq ($(PLATFORM),windows)
-	package-msi package-zip package-script
+	$(MAKE) package-msi package-zip package-script
+else ifeq ($(PLATFORM),macos)
+	$(MAKE) package-dmg package-pkg package-script
 else
-	package-rpm package-deb package-script
+	$(MAKE) package-rpm package-deb package-script
 endif
 
 # Development targets
@@ -527,6 +551,8 @@ help:
 	@echo "  package-deb      - Build DEB package (Linux only)"
 	@echo "  package-msi      - Build MSI package (Windows only)"
 	@echo "  package-zip      - Build ZIP package (Windows only)"
+	@echo "  package-dmg      - Build DMG package (macOS only)"
+	@echo "  package-pkg      - Build PKG package (macOS only)"
 	@echo "  package-script   - Build package using platform script"
 	@echo "  package-all      - Build all package formats"
 	@echo "  dev-build        - Build in debug mode"
@@ -559,13 +585,13 @@ help:
 ifeq ($(PLATFORM),windows)
 	@echo "  Windows-specific: windows-deps, windows-service, package-msi, package-zip"
 else ifeq ($(PLATFORM),macos)
-	@echo "  macOS-specific: package-script (uses build-macos.sh)"
+	@echo "  macOS-specific: package-dmg, package-pkg, package-script (uses build-macos.sh)"
 else ifeq ($(PLATFORM),linux)
 	@echo "  Linux-specific: package-rpm, package-deb, package-script (uses build-linux.sh)"
 endif
 
 # Phony targets
-.PHONY: all build clean install uninstall test package-rpm package-deb package-msi package-zip package-script package-all \
+.PHONY: all build clean install uninstall test package-rpm package-deb package-msi package-zip package-dmg package-pkg package-script package-all \
         dev-build dev-test docs analyze coverage format check-style lint security-scan deps windows-deps windows-service \
         docker-build docker-run docker-stop service-install service-uninstall service-status \
         config-install config-backup log-rotate backup restore distclean help status \

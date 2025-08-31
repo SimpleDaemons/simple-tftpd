@@ -203,3 +203,25 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/simple-tftpd-config-version.cmake"
     DESTINATION lib/cmake/simple-tftpd
 )
+
+# CPack configuration for macOS packaging
+if(PLATFORM_MACOS)
+    set(CPACK_GENERATOR "DragNDrop;productbuild")
+    set(CPACK_PACKAGE_NAME "simple-tftpd")
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Simple TFTP Daemon for macOS")
+    set(CPACK_PACKAGE_VENDOR "simple-tftpd")
+    set(CPACK_PACKAGE_CONTACT "SimpleDaemons")
+    set(CPACK_PACKAGE_FILE_NAME "simple-tftpd-${PROJECT_VERSION}-macOS-${SYSTEM_ARCH}")
+    set(CPACK_DMG_VOLUME_NAME "simple-tftpd-${PROJECT_VERSION}-macOS-${SYSTEM_ARCH}")
+    set(CPACK_DMG_FORMAT "UDZO")
+    
+    # PKG configuration
+    set(CPACK_PRODUCTBUILD_PACKAGE_NAME "simple-tftpd-${PROJECT_VERSION}-macOS-${SYSTEM_ARCH}")
+    set(CPACK_PRODUCTBUILD_PACKAGE_VERSION "${PROJECT_VERSION}")
+    set(CPACK_PRODUCTBUILD_PACKAGE_DESCRIPTION "Simple TFTP Daemon for macOS - ${SYSTEM_ARCH}")
+    set(CPACK_PRODUCTBUILD_PACKAGE_VENDOR "simple-tftpd")
+    set(CPACK_PRODUCTBUILD_PACKAGE_CONTACT "SimpleDaemons")
+    
+    include(CPack)
+endif()
