@@ -30,8 +30,9 @@ if(GTest_FOUND)
     # Test executable
     add_executable(simple-tftpd-tests ${TEST_SOURCES})
     
-    # Link libraries
+    # Link against the core library
     target_link_libraries(simple-tftpd-tests 
+        simple-tftpd-core
         ${GTEST_LIBRARIES}
         ${PLATFORM_LIBRARIES}
     )
