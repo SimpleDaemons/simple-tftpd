@@ -111,6 +111,15 @@ set(SOURCES
     src/utils/config_parser.cpp
 )
 
+# Core library source files (without main.cpp)
+set(CORE_SOURCES
+    src/core/tftp_server.cpp
+    src/core/tftp_connection.cpp
+    src/core/tftp_packet.cpp
+    src/utils/logger.cpp
+    src/utils/config_parser.cpp
+)
+
 # Header files
 set(HEADERS
     include/simple_tftpd/tftp_server.hpp
@@ -121,14 +130,27 @@ set(HEADERS
     include/simple_tftpd/platform.hpp
 )
 
-# Create executable
-add_executable(simple-tftpd ${SOURCES} ${HEADERS})
+# Create core library
+add_library(simple-tftpd-core STATIC ${CORE_SOURCES} ${HEADERS})
 
-# Link libraries
-target_link_libraries(simple-tftpd ${PLATFORM_LIBRARIES})
+# Link libraries for core library
+target_link_libraries(simple-tftpd-core ${PLATFORM_LIBRARIES})
 if(JSONCPP_FOUND)
-    target_link_libraries(simple-tftpd ${JSONCPP_LIBRARIES})
+    target_link_libraries(simple-tftpd-core ${JSONCPP_LIBRARIES})
 endif()
+
+# Set properties for core library
+set_target_properties(simple-tftpd-core PROPERTIES
+    OUTPUT_NAME "simple-tftpd-core"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+)
+
+# Create executable
+add_executable(simple-tftpd src/main.cpp)
+
+# Link executable against core library
+target_link_libraries(simple-tftpd simple-tftpd-core)
 
 # Set properties
 set_target_properties(simple-tftpd PROPERTIES
