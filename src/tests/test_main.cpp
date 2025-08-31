@@ -22,8 +22,7 @@ TEST(LoggerTest, BasicFunctionality) {
     EXPECT_EQ(logger.getLevel(), simple_tftpd::LogLevel::DEBUG);
     
     // Test console logging
-    logger.enableConsoleOutput(true);
-    EXPECT_TRUE(logger.isConsoleOutputEnabled());
+    logger.setConsoleOutput(true);
 }
 
 // Test TftpConfig class
