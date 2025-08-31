@@ -3,7 +3,8 @@ build/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
+# Makefile (keep our custom Makefile, ignore CMake-generated ones)
+CMakeFiles/Makefile
 *.cmake
 *.config
 *.version
