@@ -127,9 +127,52 @@ bool TftpRequestPacket::parse(const uint8_t* data, size_t size) {
         return false;
     }
     
-    // Basic parsing - just set defaults for now
-    filename_ = "default.txt";
-    mode_ = TftpMode::OCTET;
+    if (size < 4) { // Minimum: opcode(2) + filename(1) + mode(1)
+        return false;
+    }
+    
+    size_t offset = 2; // Skip opcode
+    
+    // Parse filename (null-terminated string)
+    std::string filename;
+    while (offset < size && data[offset] != 0) {
+        filename += static_cast<char>(data[offset]);
+        offset++;
+    }
+    
+    if (offset >= size || filename.empty()) {
+        return false;
+    }
+    
+    filename_ = filename;
+    offset++; // Skip null terminator
+    
+    // Parse mode (null-terminated string)
+    std::string mode_str;
+    while (offset < size && data[offset] != 0) {
+        mode_str += static_cast<char>(data[offset]);
+        offset++;
+    }
+    
+    if (offset >= size || mode_str.empty()) {
+        return false;
+    }
+    
+    // Convert mode string to enum
+    if (mode_str == "netascii") {
+        mode_ = TftpMode::NETASCII;
+    } else if (mode_str == "octet") {
+        mode_ = TftpMode::OCTET;
+    } else if (mode_str == "mail") {
+        mode_ = TftpMode::MAIL;
+    } else {
+        return false; // Invalid mode
+    }
+    
+    // Parse options if present
+    if (offset < size) {
+        parseOptions(data, offset, size);
+    }
     
     return true;
 }
@@ -142,9 +185,23 @@ std::vector<uint8_t> TftpRequestPacket::serialize() const {
     result.push_back(0); // null terminator
     
     // Add mode string
-    std::string mode_str = "octet";
+    std::string mode_str;
+    switch (mode_) {
+        case TftpMode::NETASCII:
+            mode_str = "netascii";
+            break;
+        case TftpMode::OCTET:
+            mode_str = "octet";
+            break;
+        case TftpMode::MAIL:
+            mode_str = "mail";
+            break;
+    }
     result.insert(result.end(), mode_str.begin(), mode_str.end());
     result.push_back(0); // null terminator
+    
+    // Add options if present
+    serializeOptions(result);
     
     return result;
 }
@@ -158,12 +215,101 @@ std::string TftpRequestPacket::getTypeString() const {
 }
 
 bool TftpRequestPacket::parseOptions(const uint8_t* data, size_t offset, size_t size) {
-    // Basic implementation - just return true for now
+    // Reset options to defaults
+    options_ = TftpOptions{};
+    
+    while (offset < size) {
+        // Parse option name (null-terminated string)
+        std::string option_name;
+        while (offset < size && data[offset] != 0) {
+            option_name += static_cast<char>(data[offset]);
+            offset++;
+        }
+        
+        if (offset >= size) {
+            break; // No more data
+        }
+        
+        offset++; // Skip null terminator
+        
+        // Parse option value (null-terminated string)
+        std::string option_value;
+        while (offset < size && data[offset] != 0) {
+            option_value += static_cast<char>(data[offset]);
+            offset++;
+        }
+        
+        if (offset >= size) {
+            break; // No more data
+        }
+        
+        offset++; // Skip null terminator
+        
+        // Process known options
+        if (option_name == "blksize") {
+            try {
+                options_.blksize = static_cast<uint16_t>(std::stoi(option_value));
+            } catch (...) {
+                // Invalid blksize value, ignore
+            }
+        } else if (option_name == "timeout") {
+            try {
+                options_.timeout = static_cast<uint16_t>(std::stoi(option_value));
+            } catch (...) {
+                // Invalid timeout value, ignore
+            }
+        } else if (option_name == "tsize") {
+            try {
+                options_.tsize = static_cast<uint16_t>(std::stoi(option_value));
+            } catch (...) {
+                // Invalid tsize value, ignore
+            }
+        } else if (option_name == "windowsize") {
+            try {
+                options_.windowsize = static_cast<uint16_t>(std::stoi(option_value));
+            } catch (...) {
+                // Invalid windowsize value, ignore
+            }
+        }
+        // Unknown options are ignored
+    }
+    
     return true;
 }
 
 void TftpRequestPacket::serializeOptions(std::vector<uint8_t>& data) const {
-    // Basic implementation - do nothing for now
+    // Only serialize non-default options
+    if (options_.blksize != 512) {
+        std::string blksize_str = std::to_string(options_.blksize);
+        data.insert(data.end(), "blksize", "blksize" + 7);
+        data.push_back(0);
+        data.insert(data.end(), blksize_str.begin(), blksize_str.end());
+        data.push_back(0);
+    }
+    
+    if (options_.timeout != 5) {
+        std::string timeout_str = std::to_string(options_.timeout);
+        data.insert(data.end(), "timeout", "timeout" + 7);
+        data.push_back(0);
+        data.insert(data.end(), timeout_str.begin(), timeout_str.end());
+        data.push_back(0);
+    }
+    
+    if (options_.tsize != 0) {
+        std::string tsize_str = std::to_string(options_.tsize);
+        data.insert(data.end(), "tsize", "tsize" + 5);
+        data.push_back(0);
+        data.insert(data.end(), tsize_str.begin(), tsize_str.end());
+        data.push_back(0);
+    }
+    
+    if (options_.windowsize != 1) {
+        std::string windowsize_str = std::to_string(options_.windowsize);
+        data.insert(data.end(), "windowsize", "windowsize" + 10);
+        data.push_back(0);
+        data.insert(data.end(), windowsize_str.begin(), windowsize_str.end());
+        data.push_back(0);
+    }
 }
 
 // TftpDataPacket implementation
