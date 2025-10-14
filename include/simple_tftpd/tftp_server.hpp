@@ -132,6 +132,17 @@ public:
     void resetStats();
     
     /**
+     * @brief Send packet to client
+     * @param packet_data Packet data
+     * @param packet_size Size of packet data
+     * @param client_addr Client address
+     * @param client_port Client port
+     * @return true if sent successfully, false otherwise
+     */
+    bool sendPacket(const uint8_t* packet_data, size_t packet_size, 
+                   const std::string& client_addr, port_t client_port);
+    
+    /**
      * @brief Get server uptime
      * @return Server uptime in seconds
      */

@@ -188,6 +188,22 @@ public:
      * @param callback Function to call on connection events
      */
     void setCallback(std::function<void(TftpConnectionState, const std::string&)> callback);
+    
+    /**
+     * @brief Process data based on transfer mode
+     * @param data Raw data
+     * @param mode Transfer mode
+     * @param is_sending Whether data is being sent (true) or received (false)
+     * @return Processed data
+     */
+    std::vector<uint8_t> processDataForMode(const std::vector<uint8_t>& data, TftpMode mode, bool is_sending);
+    
+    /**
+     * @brief Send option acknowledgment packet
+     * @param options TFTP options
+     * @return true if sent successfully, false otherwise
+     */
+    bool sendOptionAck(const TftpOptions& options);
 
 private:
     TftpServer& server_;
@@ -200,6 +216,7 @@ private:
     TftpTransferDirection direction_;
     std::string filename_;
     TftpMode mode_;
+    TftpMode transfer_mode_;
     TftpOptions options_;
     
     size_t bytes_transferred_;
