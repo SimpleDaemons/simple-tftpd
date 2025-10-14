@@ -83,6 +83,12 @@ public:
     bool setLogFile(const std::string& log_file);
     
     /**
+     * @brief Enable/disable JSON structured output
+     * @param enable Whether to emit logs as JSON objects
+     */
+    void setJsonOutput(bool enable);
+    
+    /**
      * @brief Log debug message
      * @param message Message to log
      */
@@ -137,6 +143,7 @@ private:
     std::ofstream log_stream_;
     LogLevel level_;
     bool enable_console_;
+    bool json_output_ = false;
     mutable std::mutex mutex_;
     
     /**

@@ -56,6 +56,11 @@ void Logger::setConsoleOutput(bool enable) {
     enable_console_ = enable;
 }
 
+void Logger::setJsonOutput(bool enable) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    json_output_ = enable;
+}
+
 bool Logger::setLogFile(const std::string& log_file) {
     std::lock_guard<std::mutex> lock(mutex_);
     
@@ -143,12 +148,36 @@ void Logger::writeLog(LogLevel level, const std::string& message) {
 }
 
 std::string Logger::formatMessage(LogLevel level, const std::string& message) {
-    std::stringstream ss;
-    ss << "[" << getTimestamp() << "] "
-       << "[" << levelToString(level) << "] "
-       << message;
-    
-    return ss.str();
+    if (json_output_) {
+        // Minimal JSON without external deps
+        std::stringstream ss;
+        ss << '{'
+           << "\"timestamp\":\"" << getTimestamp() << "\"," 
+           << "\"level\":\"" << levelToString(level) << "\"," 
+           << "\"message\":\"";
+        // Escape quotes and backslashes in message
+        for (char c : message) {
+            if (c == '"' || c == '\\') {
+                ss << '\\' << c;
+            } else if (c == '\n') {
+                ss << "\\n";
+            } else if (c == '\r') {
+                ss << "\\r";
+            } else if (c == '\t') {
+                ss << "\\t";
+            } else {
+                ss << c;
+            }
+        }
+        ss << "\"}";
+        return ss.str();
+    } else {
+        std::stringstream ss;
+        ss << "[" << getTimestamp() << "] "
+           << "[" << levelToString(level) << "] "
+           << message;
+        return ss.str();
+    }
 }
 
 } // namespace simple_tftpd
