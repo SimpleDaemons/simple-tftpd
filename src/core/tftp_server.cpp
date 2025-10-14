@@ -576,4 +576,57 @@ bool TftpServer::setNonBlocking() {
     return true;
 }
 
+bool TftpServer::sendPacket(const uint8_t* packet_data, size_t packet_size, 
+                           const std::string& client_addr, port_t client_port) {
+    if (!packet_data || packet_size == 0) {
+        return false;
+    }
+    
+    struct sockaddr_storage addr;
+    socklen_t addr_len;
+    
+    if (ipv6_enabled_) {
+        // IPv6 address
+        struct sockaddr_in6* addr6 = reinterpret_cast<struct sockaddr_in6*>(&addr);
+        memset(addr6, 0, sizeof(*addr6));
+        addr6->sin6_family = AF_INET6;
+        addr6->sin6_port = htons(client_port);
+        
+        if (inet_pton(AF_INET6, client_addr.c_str(), &addr6->sin6_addr) != 1) {
+            logEvent(LogLevel::ERROR, "Invalid IPv6 client address: " + client_addr);
+            return false;
+        }
+        
+        addr_len = sizeof(*addr6);
+    } else {
+        // IPv4 address
+        struct sockaddr_in* addr4 = reinterpret_cast<struct sockaddr_in*>(&addr);
+        memset(addr4, 0, sizeof(*addr4));
+        addr4->sin_family = AF_INET;
+        addr4->sin_port = htons(client_port);
+        
+        if (inet_pton(AF_INET, client_addr.c_str(), &addr4->sin_addr) != 1) {
+            logEvent(LogLevel::ERROR, "Invalid IPv4 client address: " + client_addr);
+            return false;
+        }
+        
+        addr_len = sizeof(*addr4);
+    }
+    
+    ssize_t bytes_sent = sendto(server_socket_, 
+                              reinterpret_cast<const char*>(packet_data), 
+                              packet_size, 
+                              0,
+                              reinterpret_cast<struct sockaddr*>(&addr),
+                              addr_len);
+    
+    if (bytes_sent < 0 || static_cast<size_t>(bytes_sent) != packet_size) {
+        logEvent(LogLevel::ERROR, "Failed to send packet to " + client_addr + ":" + std::to_string(client_port) + 
+                " - Error: " + std::to_string(SOCKET_ERROR_CODE));
+        return false;
+    }
+    
+    return true;
+}
+
 } // namespace simple_tftpd

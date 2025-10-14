@@ -164,22 +164,146 @@ void TftpConnection::workerThread() {
 
 void TftpConnection::handleReadRequest(const TftpRequestPacket& packet) {
     logEvent(LogLevel::INFO, "Handling read request for file: " + packet.getFilename());
-    // Basic implementation - just log for now
+    
+    // Set transfer direction and mode
+    direction_ = TftpTransferDirection::READ;
+    transfer_mode_ = packet.getMode();
+    
+    // Validate file access
+    if (!validateFileAccess(packet.getFilename(), false)) {
+        sendError(TftpError::ACCESS_VIOLATION, "Access denied");
+        return;
+    }
+    
+    // Open file for reading
+    if (!openReadFile(packet.getFilename())) {
+        sendError(TftpError::FILE_NOT_FOUND, "File not found");
+        return;
+    }
+    
+    // Process TFTP options
+    TftpOptions options = packet.getOptions();
+    if (options.blksize != 512) {
+        // Send OACK for blksize option
+        sendOptionAck(options);
+        return;
+    }
+    
+    // Start sending data
+    current_block_ = 1;
+    setState(TftpConnectionState::SENDING_DATA, "Starting file transfer");
+    
+    if (!sendDataBlock(current_block_)) {
+        sendError(TftpError::NETWORK_ERROR, "Failed to send data");
+        return;
+    }
 }
 
 void TftpConnection::handleWriteRequest(const TftpRequestPacket& packet) {
     logEvent(LogLevel::INFO, "Handling write request for file: " + packet.getFilename());
-    // Basic implementation - just log for now
+    
+    // Set transfer direction and mode
+    direction_ = TftpTransferDirection::WRITE;
+    transfer_mode_ = packet.getMode();
+    
+    // Validate file access
+    if (!validateFileAccess(packet.getFilename(), true)) {
+        sendError(TftpError::ACCESS_VIOLATION, "Access denied");
+        return;
+    }
+    
+    // Open file for writing
+    if (!openWriteFile(packet.getFilename())) {
+        sendError(TftpError::FILE_EXISTS, "File already exists or cannot be created");
+        return;
+    }
+    
+    // Process TFTP options
+    TftpOptions options = packet.getOptions();
+    if (options.blksize != 512) {
+        // Send OACK for blksize option
+        sendOptionAck(options);
+        return;
+    }
+    
+    // Send ACK for write request
+    current_block_ = 0;
+    setState(TftpConnectionState::RECEIVING_DATA, "Ready to receive file");
+    
+    if (!sendAcknowledgment(current_block_)) {
+        sendError(TftpError::NETWORK_ERROR, "Failed to send ACK");
+        return;
+    }
 }
 
 void TftpConnection::handleDataPacket(const TftpDataPacket& packet) {
     logEvent(LogLevel::DEBUG, "Handling data packet with block " + std::to_string(packet.getBlockNumber()));
-    // Basic implementation - just log for now
+    
+    if (direction_ != TftpTransferDirection::WRITE) {
+        sendError(TftpError::ILLEGAL_OPERATION, "Unexpected data packet");
+        return;
+    }
+    
+    uint16_t block_number = packet.getBlockNumber();
+    const std::vector<uint8_t>& data = packet.getFileData();
+    
+    // Check if this is the expected block
+    if (block_number != current_block_ + 1) {
+        logEvent(LogLevel::WARNING, "Unexpected block number: " + std::to_string(block_number) + ", expected: " + std::to_string(current_block_ + 1));
+        return;
+    }
+    
+    // Process data based on transfer mode
+    std::vector<uint8_t> processed_data = processDataForMode(data, transfer_mode_, false);
+    
+    // Write data to file
+    if (write_file_.is_open()) {
+        write_file_.write(reinterpret_cast<const char*>(processed_data.data()), processed_data.size());
+        if (write_file_.fail()) {
+            sendError(TftpError::DISK_FULL, "Failed to write data");
+            return;
+        }
+    }
+    
+    // Update counters
+    current_block_ = block_number;
+    bytes_transferred_ += processed_data.size();
+    
+    // Send ACK
+    if (!sendAcknowledgment(block_number)) {
+        sendError(TftpError::NETWORK_ERROR, "Failed to send ACK");
+        return;
+    }
+    
+    // Check if this is the last block (less than full block size)
+    if (data.size() < config_->getBlockSize()) {
+        setState(TftpConnectionState::COMPLETED, "File transfer completed");
+        closeFiles();
+    }
 }
 
 void TftpConnection::handleAckPacket(const TftpAckPacket& packet) {
     logEvent(LogLevel::DEBUG, "Handling ACK packet for block " + std::to_string(packet.getBlockNumber()));
-    // Basic implementation - just log for now
+    
+    if (direction_ != TftpTransferDirection::READ) {
+        sendError(TftpError::ILLEGAL_OPERATION, "Unexpected ACK packet");
+        return;
+    }
+    
+    uint16_t block_number = packet.getBlockNumber();
+    
+    // Check if this is the expected ACK
+    if (block_number != current_block_) {
+        logEvent(LogLevel::WARNING, "Unexpected ACK block number: " + std::to_string(block_number) + ", expected: " + std::to_string(current_block_));
+        return;
+    }
+    
+    // Send next data block
+    current_block_++;
+    if (!sendDataBlock(current_block_)) {
+        sendError(TftpError::NETWORK_ERROR, "Failed to send data");
+        return;
+    }
 }
 
 void TftpConnection::handleErrorPacket(const TftpErrorPacket& packet) {
@@ -198,12 +322,60 @@ bool TftpConnection::processWriteRequest(const TftpRequestPacket& packet) {
 }
 
 bool TftpConnection::sendDataBlock(uint16_t block_number) {
-    // Basic implementation - just return true for now
+    if (!read_file_.is_open()) {
+        return false;
+    }
+    
+    // Read data from file
+    std::vector<uint8_t> buffer(config_->getBlockSize());
+    read_file_.read(reinterpret_cast<char*>(buffer.data()), config_->getBlockSize());
+    std::streamsize bytes_read = read_file_.gcount();
+    
+    if (bytes_read < 0) {
+        logEvent(LogLevel::ERROR, "Failed to read from file");
+        return false;
+    }
+    
+    // Resize buffer to actual bytes read
+    buffer.resize(static_cast<size_t>(bytes_read));
+    
+    // Process data based on transfer mode
+    std::vector<uint8_t> processed_data = processDataForMode(buffer, transfer_mode_, true);
+    
+    // Create and send data packet
+    TftpDataPacket data_packet(block_number, processed_data);
+    std::vector<uint8_t> packet_data = data_packet.serialize();
+    
+    // Send packet via server
+    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
+        logEvent(LogLevel::ERROR, "Failed to send data packet");
+        return false;
+    }
+    
+    bytes_transferred_ += processed_data.size();
+    updateActivity();
+    
+    // Check if this is the last block
+    if (bytes_read < static_cast<std::streamsize>(config_->getBlockSize())) {
+        setState(TftpConnectionState::COMPLETED, "File transfer completed");
+        closeFiles();
+    }
+    
     return true;
 }
 
 bool TftpConnection::sendAcknowledgment(uint16_t block_number) {
-    // Basic implementation - just return true for now
+    // Create and send ACK packet
+    TftpAckPacket ack_packet(block_number);
+    std::vector<uint8_t> packet_data = ack_packet.serialize();
+    
+    // Send packet via server
+    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
+        logEvent(LogLevel::ERROR, "Failed to send ACK packet");
+        return false;
+    }
+    
+    updateActivity();
     return true;
 }
 
@@ -381,6 +553,125 @@ void TftpConnection::logEvent(LogLevel level, const std::string& message) {
     if (logger_) {
         logger_->log(level, "[Connection " + client_addr_ + ":" + std::to_string(client_port_) + "] " + message);
     }
+}
+
+std::vector<uint8_t> TftpConnection::processDataForMode(const std::vector<uint8_t>& data, TftpMode mode, bool is_sending) {
+    std::vector<uint8_t> result = data;
+    
+    switch (mode) {
+        case TftpMode::NETASCII:
+            if (is_sending) {
+                // Convert LF to CRLF for netascii mode
+                result.clear();
+                for (size_t i = 0; i < data.size(); ++i) {
+                    if (data[i] == '\n' && (i == 0 || data[i-1] != '\r')) {
+                        result.push_back('\r');
+                    }
+                    result.push_back(data[i]);
+                }
+            } else {
+                // Convert CRLF to LF for netascii mode
+                result.clear();
+                for (size_t i = 0; i < data.size(); ++i) {
+                    if (data[i] == '\r' && i + 1 < data.size() && data[i+1] == '\n') {
+                        result.push_back('\n');
+                        ++i; // Skip the LF
+                    } else if (data[i] != '\r') {
+                        result.push_back(data[i]);
+                    }
+                }
+            }
+            break;
+            
+        case TftpMode::OCTET:
+            // No conversion needed for binary mode
+            break;
+            
+        case TftpMode::MAIL:
+            // Mail mode is similar to netascii but with additional processing
+            // For now, treat it the same as netascii
+            if (is_sending) {
+                result.clear();
+                for (size_t i = 0; i < data.size(); ++i) {
+                    if (data[i] == '\n' && (i == 0 || data[i-1] != '\r')) {
+                        result.push_back('\r');
+                    }
+                    result.push_back(data[i]);
+                }
+            } else {
+                result.clear();
+                for (size_t i = 0; i < data.size(); ++i) {
+                    if (data[i] == '\r' && i + 1 < data.size() && data[i+1] == '\n') {
+                        result.push_back('\n');
+                        ++i; // Skip the LF
+                    } else if (data[i] != '\r') {
+                        result.push_back(data[i]);
+                    }
+                }
+            }
+            break;
+    }
+    
+    return result;
+}
+
+bool TftpConnection::sendError(TftpError error_code, const std::string& error_message) {
+    // Create and send error packet
+    TftpErrorPacket error_packet(error_code, error_message);
+    std::vector<uint8_t> packet_data = error_packet.serialize();
+    
+    // Send packet via server
+    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
+        logEvent(LogLevel::ERROR, "Failed to send error packet");
+        return false;
+    }
+    
+    setState(TftpConnectionState::ERROR, error_message);
+    updateActivity();
+    return true;
+}
+
+bool TftpConnection::sendOptionAck(const TftpOptions& options) {
+    // Create OACK packet (Option Acknowledgment)
+    std::vector<uint8_t> packet_data;
+    
+    // Add opcode (OACK = 6)
+    packet_data.push_back(0);
+    packet_data.push_back(6);
+    
+    // Add options
+    if (options.blksize != 512) {
+        std::string blksize_str = std::to_string(options.blksize);
+        packet_data.insert(packet_data.end(), "blksize", "blksize" + 7);
+        packet_data.push_back(0);
+        packet_data.insert(packet_data.end(), blksize_str.begin(), blksize_str.end());
+        packet_data.push_back(0);
+    }
+    
+    if (options.timeout != 5) {
+        std::string timeout_str = std::to_string(options.timeout);
+        packet_data.insert(packet_data.end(), "timeout", "timeout" + 7);
+        packet_data.push_back(0);
+        packet_data.insert(packet_data.end(), timeout_str.begin(), timeout_str.end());
+        packet_data.push_back(0);
+    }
+    
+    if (options.tsize != 0) {
+        std::string tsize_str = std::to_string(options.tsize);
+        packet_data.insert(packet_data.end(), "tsize", "tsize" + 5);
+        packet_data.push_back(0);
+        packet_data.insert(packet_data.end(), tsize_str.begin(), tsize_str.end());
+        packet_data.push_back(0);
+    }
+    
+    // Send packet via server
+    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
+        logEvent(LogLevel::ERROR, "Failed to send OACK packet");
+        return false;
+    }
+    
+    updateActivity();
+    return true;
 }
 
 } // namespace simple_tftpd
