@@ -20,7 +20,7 @@ endif()
 
 # Build options
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-option(ENABLE_TESTS "Enable tests" OFF)
+option(ENABLE_TESTS "Enable tests" ON)
 option(ENABLE_PACKAGING "Enable package generation" ON)
 option(ENABLE_SSL "Enable SSL/TLS support" ON)
 option(ENABLE_JSON "Enable JSON support" ON)
@@ -38,14 +38,21 @@ if(ENABLE_JSON)
     pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 endif()
 
+# Optional YAML support
+option(ENABLE_YAML "Enable YAML configuration support" ON)
+if(ENABLE_YAML)
+    find_package(yaml-cpp QUIET)
+    if(yaml-cpp_FOUND)
+        target_link_libraries(${PROJECT_NAME} yaml-cpp)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_YAML_CPP=1)
+    endif()
+endif()
+
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Source files
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
-if(NOT ENABLE_TESTS)
-    list(FILTER SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
-endif()
 file(GLOB_RECURSE HEADERS "include/*.hpp" "include/*.h")
 
 # Create executable
@@ -82,7 +89,7 @@ if(MSVC)
         target_compile_options(${PROJECT_NAME} PRIVATE /MT)
     endif()
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-unused-private-field -Wno-reorder-ctor -Wno-unused-but-set-variable)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-unused-private-field)
     if(ENABLE_STATIC_LINKING)
         # Only apply static linking flags for GCC, not clang
         if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -137,15 +144,12 @@ endif()
 # Tests
 if(ENABLE_TESTS)
     enable_testing()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
-        add_subdirectory(tests)
-    else()
-        message(STATUS "No tests directory found, skipping tests")
-    endif()
+    add_subdirectory(tests)
 endif()
 
 # Package generation
 if(ENABLE_PACKAGING)
+    include(CPack)
     
     # Package information
     set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")

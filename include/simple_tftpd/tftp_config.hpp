@@ -267,6 +267,18 @@ public:
      * @return true if console logging is enabled
      */
     bool isConsoleLoggingEnabled() const;
+    
+    /**
+     * @brief Enable/disable JSON logging output
+     * @param enable Whether to enable JSON-formatted logs
+     */
+    void setJsonLogging(bool enable);
+    
+    /**
+     * @brief Check if JSON logging is enabled
+     * @return true if JSON logging is enabled
+     */
+    bool isJsonLoggingEnabled() const;
 
 private:
     // Network settings
@@ -293,6 +305,7 @@ private:
     LogLevel log_level_;
     std::string log_file_;
     bool console_logging_;
+    bool json_logging_ = false;
     
     /**
      * @brief Set default values
@@ -305,6 +318,16 @@ private:
      * @return true if parsed successfully, false otherwise
      */
     bool parseJson(const std::string& json_config);
+    
+    /**
+     * @brief Parse YAML configuration (string content)
+     */
+    bool parseYaml(const std::string& yaml_config);
+    
+    /**
+     * @brief Parse INI configuration (string content)
+     */
+    bool parseIni(const std::string& ini_config);
 };
 
 } // namespace simple_tftpd

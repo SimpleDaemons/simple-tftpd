@@ -19,6 +19,10 @@
 #include <fstream>
 #include <sstream>
 #include <json/json.h>
+#ifdef HAS_YAML_CPP
+#include <yaml-cpp/yaml.h>
+#endif
+#include <regex>
 
 namespace simple_tftpd {
 
@@ -64,7 +68,27 @@ bool TftpConfig::loadFromFile(const std::string& config_file) {
     std::stringstream buffer;
     buffer << file.rdbuf();
     
-    return loadFromJson(buffer.str());
+    // Determine format by extension
+    std::string ext;
+    auto dot = config_file.find_last_of('.');
+    if (dot != std::string::npos) {
+        ext = config_file.substr(dot + 1);
+        for (auto& c : ext) c = static_cast<char>(::tolower(c));
+    }
+    
+    if (ext == "json") {
+        return loadFromJson(buffer.str());
+    } else if (ext == "yaml" || ext == "yml") {
+        return parseYaml(buffer.str());
+    } else if (ext == "ini" || ext == "conf") {
+        return parseIni(buffer.str());
+    }
+    
+    // Fallback: try JSON, then YAML, then INI heuristically
+    if (loadFromJson(buffer.str())) return true;
+    if (parseYaml(buffer.str())) return true;
+    if (parseIni(buffer.str())) return true;
+    return false;
 }
 
 bool TftpConfig::loadFromJson(const std::string& json_config) {
@@ -81,6 +105,119 @@ bool TftpConfig::loadFromJson(const std::string& json_config) {
         
         return parseJson(root);
     } catch (const std::exception& e) {
+        return false;
+    }
+}
+// Minimal YAML parsing using yaml-cpp if available; otherwise very basic fallback
+bool TftpConfig::parseYaml(const std::string& yaml_config) {
+#ifdef HAS_YAML_CPP
+    try {
+        YAML::Node root = YAML::Load(yaml_config);
+        // Convert YAML::Node to Json::Value-like structure and reuse parseJson-style logic
+        Json::Value jsonRoot;
+        // network
+        if (root["network"]) {
+            auto net = root["network"];
+            if (net["listen_address"]) jsonRoot["network"]["listen_address"] = net["listen_address"].as<std::string>();
+            if (net["listen_port"]) jsonRoot["network"]["listen_port"] = net["listen_port"].as<unsigned int>();
+            if (net["ipv6_enabled"]) jsonRoot["network"]["ipv6_enabled"] = net["ipv6_enabled"].as<bool>();
+        }
+        if (root["filesystem"]) {
+            auto fs = root["filesystem"];
+            if (fs["root_directory"]) jsonRoot["filesystem"]["root_directory"] = fs["root_directory"].as<std::string>();
+            if (fs["allowed_directories"]) {
+                for (auto it : fs["allowed_directories"]) {
+                    jsonRoot["filesystem"]["allowed_directories"].append(it.as<std::string>());
+                }
+            }
+        }
+        if (root["security"]) {
+            auto sec = root["security"];
+            if (sec["read_enabled"]) jsonRoot["security"]["read_enabled"] = sec["read_enabled"].as<bool>();
+            if (sec["write_enabled"]) jsonRoot["security"]["write_enabled"] = sec["write_enabled"].as<bool>();
+            if (sec["max_file_size"]) jsonRoot["security"]["max_file_size"] = (Json::UInt64)sec["max_file_size"].as<unsigned long long>();
+            if (sec["overwrite_protection"]) jsonRoot["security"]["overwrite_protection"] = sec["overwrite_protection"].as<bool>();
+        }
+        if (root["performance"]) {
+            auto perf = root["performance"];
+            if (perf["block_size"]) jsonRoot["performance"]["block_size"] = perf["block_size"].as<unsigned int>();
+            if (perf["timeout"]) jsonRoot["performance"]["timeout"] = perf["timeout"].as<unsigned int>();
+            if (perf["window_size"]) jsonRoot["performance"]["window_size"] = perf["window_size"].as<unsigned int>();
+        }
+        if (root["logging"]) {
+            auto log = root["logging"];
+            if (log["level"]) jsonRoot["logging"]["level"] = log["level"].as<std::string>();
+            if (log["log_file"]) jsonRoot["logging"]["log_file"] = log["log_file"].as<std::string>();
+            if (log["console_logging"]) jsonRoot["logging"]["console_logging"] = log["console_logging"].as<bool>();
+            if (log["json"]) jsonRoot["logging"]["json"] = log["json"].as<bool>();
+        }
+        return parseJson(jsonRoot);
+    } catch (...) {
+        return false;
+    }
+#else
+    // No yaml-cpp: try a very naive detection and fail
+    (void)yaml_config;
+    return false;
+#endif
+}
+
+// Minimal INI parsing for flat sections using regex; robust parser can be added later
+bool TftpConfig::parseIni(const std::string& ini_config) {
+    try {
+        std::istringstream ss(ini_config);
+        std::string line, section;
+        std::map<std::string, std::map<std::string, std::string>> kv;
+        std::regex sectionRe("^\\s*\\[(.+)\\]\\s*$");
+        std::regex kvRe("^\\s*([^=:#]+?)\\s*[:=]\\s*(.+?)\\s*$");
+        while (std::getline(ss, line)) {
+            std::smatch m;
+            if (std::regex_match(line, m, sectionRe)) {
+                section = m[1];
+                continue;
+            }
+            if (std::regex_match(line, m, kvRe)) {
+                kv[section][m[1]] = m[2];
+            }
+        }
+        Json::Value root;
+        auto putStr = [&](const std::string& sec, const std::string& key, const std::string& outKey) {
+            if (kv.count(sec) && kv[sec].count(key)) root[sec][outKey] = kv[sec][key];
+        };
+        auto putBool = [&](const std::string& sec, const std::string& key, const std::string& outKey) {
+            if (kv.count(sec) && kv[sec].count(key)) root[sec][outKey] = (kv[sec][key] == "true" || kv[sec][key] == "1");
+        };
+        auto putUInt = [&](const std::string& sec, const std::string& key, const std::string& outKey) {
+            if (kv.count(sec) && kv[sec].count(key)) root[sec][outKey] = (Json::UInt)std::stoul(kv[sec][key]);
+        };
+        // Map common sections/keys
+        putStr("network","listen_address","listen_address");
+        putUInt("network","listen_port","listen_port");
+        putBool("network","ipv6_enabled","ipv6_enabled");
+        putStr("filesystem","root_directory","root_directory");
+        // allowed_directories: comma-separated
+        if (kv.count("filesystem") && kv["filesystem"].count("allowed_directories")) {
+            std::stringstream dirs(kv["filesystem"]["allowed_directories"]);
+            std::string item;
+            while (std::getline(dirs, item, ',')) {
+                root["filesystem"]["allowed_directories"].append(item);
+            }
+        }
+        putBool("security","read_enabled","read_enabled");
+        putBool("security","write_enabled","write_enabled");
+        if (kv.count("security") && kv["security"].count("max_file_size")) {
+            root["security"]["max_file_size"] = (Json::UInt64)std::stoull(kv["security"]["max_file_size"]);
+        }
+        putBool("security","overwrite_protection","overwrite_protection");
+        putUInt("performance","block_size","block_size");
+        putUInt("performance","timeout","timeout");
+        putUInt("performance","window_size","window_size");
+        putStr("logging","level","level");
+        putStr("logging","log_file","log_file");
+        putBool("logging","console_logging","console_logging");
+        putBool("logging","json","json");
+        return parseJson(root);
+    } catch (...) {
         return false;
     }
 }
@@ -257,6 +394,14 @@ bool TftpConfig::isConsoleLoggingEnabled() const {
     return console_logging_;
 }
 
+void TftpConfig::setJsonLogging(bool enable) {
+    json_logging_ = enable;
+}
+
+bool TftpConfig::isJsonLoggingEnabled() const {
+    return json_logging_;
+}
+
 bool TftpConfig::parseJson(const Json::Value& root) {
     try {
         // Parse network settings
@@ -356,6 +501,9 @@ bool TftpConfig::parseJson(const Json::Value& root) {
             
             if (logging.isMember("console_logging")) {
                 console_logging_ = logging["console_logging"].asBool();
+            }
+            if (logging.isMember("json")) {
+                json_logging_ = logging["json"].asBool();
             }
         }
         
