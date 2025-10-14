@@ -240,6 +240,9 @@ int main(int argc, char* argv[]) {
             config->getLogLevel(),
             config->isConsoleLoggingEnabled()
         );
+        if (config->isJsonLoggingEnabled()) {
+            g_logger->setJsonOutput(true);
+        }
         
         g_logger->info("Starting simple-tftpd v0.1.0");
         g_logger->info("Configuration loaded successfully");
