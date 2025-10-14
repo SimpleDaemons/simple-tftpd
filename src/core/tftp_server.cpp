@@ -234,9 +234,55 @@ std::vector<std::string> TftpServer::listConnections() const {
 void TftpServer::listenerThread() {
     logEvent(LogLevel::INFO, "Listener thread started");
     
+    uint8_t buffer[TFTP_MAX_PACKET_SIZE];
+    
     while (running_.load() && !shutdown_requested_.load()) {
-        // Basic listener - just sleep for now
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        struct sockaddr_storage client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+        
+        ssize_t bytes_received = recvfrom(server_socket_, 
+                                        reinterpret_cast<char*>(buffer), 
+                                        sizeof(buffer), 
+                                        0,
+                                        reinterpret_cast<struct sockaddr*>(&client_addr),
+                                        &client_addr_len);
+        
+        if (bytes_received > 0) {
+            // Convert client address to string
+            std::string client_addr_str;
+            port_t client_port = 0;
+            
+            if (client_addr.ss_family == AF_INET) {
+                struct sockaddr_in* addr4 = reinterpret_cast<struct sockaddr_in*>(&client_addr);
+                char addr_str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &addr4->sin_addr, addr_str, INET_ADDRSTRLEN);
+                client_addr_str = addr_str;
+                client_port = ntohs(addr4->sin_port);
+            } else if (client_addr.ss_family == AF_INET6) {
+                struct sockaddr_in6* addr6 = reinterpret_cast<struct sockaddr_in6*>(&client_addr);
+                char addr_str[INET6_ADDRSTRLEN];
+                inet_ntop(AF_INET6, &addr6->sin6_addr, addr_str, INET6_ADDRSTRLEN);
+                client_addr_str = addr_str;
+                client_port = ntohs(addr6->sin6_port);
+            }
+            
+            // Handle the received packet
+            handlePacket(buffer, static_cast<size_t>(bytes_received), client_addr_str, client_port);
+        } else if (bytes_received < 0) {
+#ifdef PLATFORM_WINDOWS
+            int error = WSAGetLastError();
+            if (error != WSAEWOULDBLOCK && error != WSAETIMEDOUT) {
+                logEvent(LogLevel::ERROR, "Socket receive error: " + std::to_string(error));
+            }
+#else
+            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                logEvent(LogLevel::ERROR, "Socket receive error: " + std::to_string(errno));
+            }
+#endif
+        }
+        
+        // Small sleep to prevent busy waiting
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     
     logEvent(LogLevel::INFO, "Listener thread stopped");
@@ -256,7 +302,25 @@ void TftpServer::cleanupThread() {
 }
 
 bool TftpServer::initializeSocket() {
-    // Basic socket initialization - just return true for now
+#ifdef PLATFORM_WINDOWS
+    // Initialize Winsock on Windows
+    WSADATA wsaData;
+    int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (result != 0) {
+        logEvent(LogLevel::ERROR, "WSAStartup failed: " + std::to_string(result));
+        return false;
+    }
+#endif
+
+    // Create UDP socket
+    int family = ipv6_enabled_ ? AF_INET6 : AF_INET;
+    server_socket_ = socket(family, SOCK_DGRAM, IPPROTO_UDP);
+    
+    if (server_socket_ == INVALID_SOCKET_VALUE) {
+        logEvent(LogLevel::ERROR, "Failed to create socket: " + std::to_string(SOCKET_ERROR_CODE));
+        return false;
+    }
+    
     return true;
 }
 
@@ -276,8 +340,83 @@ void TftpServer::handlePacket(const uint8_t* packet_data,
                              size_t packet_size,
                              const std::string& sender_addr,
                              port_t sender_port) {
-    // Basic packet handling - just log for now
-    logEvent(LogLevel::DEBUG, "Handling packet from " + sender_addr + ":" + std::to_string(sender_port));
+    if (packet_size < 2) {
+        logEvent(LogLevel::WARNING, "Received packet too small from " + sender_addr + ":" + std::to_string(sender_port));
+        return;
+    }
+    
+    // Parse packet type
+    uint16_t opcode = (packet_data[0] << 8) | packet_data[1];
+    
+    std::string connection_key = generateConnectionKey(sender_addr, sender_port);
+    
+    // Handle different packet types
+    switch (static_cast<TftpOpcode>(opcode)) {
+        case TftpOpcode::RRQ:
+        case TftpOpcode::WRQ: {
+            // Create new connection for request
+            auto connection = createConnection(sender_addr, sender_port);
+            if (connection) {
+                std::lock_guard<std::mutex> lock(connections_mutex_);
+                connections_[connection_key] = connection;
+                connection->start();
+                
+                // Parse and handle the request
+                TftpRequestPacket request(packet_data, packet_size);
+                if (request.isValid()) {
+                    if (opcode == static_cast<uint16_t>(TftpOpcode::RRQ)) {
+                        connection->handleReadRequest(request);
+                    } else {
+                        connection->handleWriteRequest(request);
+                    }
+                }
+            }
+            break;
+        }
+        
+        case TftpOpcode::DATA: {
+            // Find existing connection
+            std::lock_guard<std::mutex> lock(connections_mutex_);
+            auto it = connections_.find(connection_key);
+            if (it != connections_.end()) {
+                TftpDataPacket data_packet(packet_data, packet_size);
+                if (data_packet.isValid()) {
+                    it->second->handleDataPacket(data_packet);
+                }
+            }
+            break;
+        }
+        
+        case TftpOpcode::ACK: {
+            // Find existing connection
+            std::lock_guard<std::mutex> lock(connections_mutex_);
+            auto it = connections_.find(connection_key);
+            if (it != connections_.end()) {
+                TftpAckPacket ack_packet(packet_data, packet_size);
+                if (ack_packet.isValid()) {
+                    it->second->handleAckPacket(ack_packet);
+                }
+            }
+            break;
+        }
+        
+        case TftpOpcode::ERROR: {
+            // Find existing connection
+            std::lock_guard<std::mutex> lock(connections_mutex_);
+            auto it = connections_.find(connection_key);
+            if (it != connections_.end()) {
+                TftpErrorPacket error_packet(packet_data, packet_size);
+                if (error_packet.isValid()) {
+                    it->second->handleErrorPacket(error_packet);
+                }
+            }
+            break;
+        }
+        
+        default:
+            logEvent(LogLevel::WARNING, "Unknown packet type " + std::to_string(opcode) + " from " + sender_addr + ":" + std::to_string(sender_port));
+            break;
+    }
 }
 
 std::shared_ptr<TftpConnection> TftpServer::createConnection(const std::string& client_addr, port_t client_port) {
@@ -342,17 +481,98 @@ bool TftpServer::isValidPort(port_t port) const {
 }
 
 bool TftpServer::setSocketOptions() {
-    // Basic socket options - just return true for now
+    // Set socket to reuse address
+    int reuse = 1;
+    if (setsockopt(server_socket_, SOL_SOCKET, SO_REUSEADDR, 
+                   reinterpret_cast<const char*>(&reuse), sizeof(reuse)) < 0) {
+        logEvent(LogLevel::WARNING, "Failed to set SO_REUSEADDR: " + std::to_string(SOCKET_ERROR_CODE));
+    }
+    
+    // Set socket receive timeout
+    struct timeval timeout;
+    timeout.tv_sec = 1;  // 1 second timeout
+    timeout.tv_usec = 0;
+    
+    if (setsockopt(server_socket_, SOL_SOCKET, SO_RCVTIMEO, 
+                   reinterpret_cast<const char*>(&timeout), sizeof(timeout)) < 0) {
+        logEvent(LogLevel::WARNING, "Failed to set receive timeout: " + std::to_string(SOCKET_ERROR_CODE));
+    }
+    
+    // Set socket send timeout
+    if (setsockopt(server_socket_, SOL_SOCKET, SO_SNDTIMEO, 
+                   reinterpret_cast<const char*>(&timeout), sizeof(timeout)) < 0) {
+        logEvent(LogLevel::WARNING, "Failed to set send timeout: " + std::to_string(SOCKET_ERROR_CODE));
+    }
+    
     return true;
 }
 
 bool TftpServer::bindSocket() {
-    // Basic socket binding - just return true for now
+    if (ipv6_enabled_) {
+        // IPv6 binding
+        struct sockaddr_in6 addr6;
+        memset(&addr6, 0, sizeof(addr6));
+        addr6.sin6_family = AF_INET6;
+        addr6.sin6_port = htons(listen_port_);
+        
+        if (listen_address_ == "0.0.0.0" || listen_address_ == "::") {
+            addr6.sin6_addr = in6addr_any;
+        } else {
+            if (inet_pton(AF_INET6, listen_address_.c_str(), &addr6.sin6_addr) != 1) {
+                logEvent(LogLevel::ERROR, "Invalid IPv6 address: " + listen_address_);
+                return false;
+            }
+        }
+        
+        if (bind(server_socket_, reinterpret_cast<struct sockaddr*>(&addr6), sizeof(addr6)) < 0) {
+            logEvent(LogLevel::ERROR, "Failed to bind IPv6 socket: " + std::to_string(SOCKET_ERROR_CODE));
+            return false;
+        }
+    } else {
+        // IPv4 binding
+        struct sockaddr_in addr4;
+        memset(&addr4, 0, sizeof(addr4));
+        addr4.sin_family = AF_INET;
+        addr4.sin_port = htons(listen_port_);
+        
+        if (listen_address_ == "0.0.0.0") {
+            addr4.sin_addr.s_addr = INADDR_ANY;
+        } else {
+            if (inet_pton(AF_INET, listen_address_.c_str(), &addr4.sin_addr) != 1) {
+                logEvent(LogLevel::ERROR, "Invalid IPv4 address: " + listen_address_);
+                return false;
+            }
+        }
+        
+        if (bind(server_socket_, reinterpret_cast<struct sockaddr*>(&addr4), sizeof(addr4)) < 0) {
+            logEvent(LogLevel::ERROR, "Failed to bind IPv4 socket: " + std::to_string(SOCKET_ERROR_CODE));
+            return false;
+        }
+    }
+    
     return true;
 }
 
 bool TftpServer::setNonBlocking() {
-    // Basic non-blocking setup - just return true for now
+#ifdef PLATFORM_WINDOWS
+    u_long mode = 1; // 1 to enable non-blocking socket
+    if (ioctlsocket(server_socket_, FIONBIO, &mode) != 0) {
+        logEvent(LogLevel::ERROR, "Failed to set non-blocking mode: " + std::to_string(SOCKET_ERROR_CODE));
+        return false;
+    }
+#else
+    int flags = fcntl(server_socket_, F_GETFL, 0);
+    if (flags < 0) {
+        logEvent(LogLevel::ERROR, "Failed to get socket flags: " + std::to_string(SOCKET_ERROR_CODE));
+        return false;
+    }
+    
+    if (fcntl(server_socket_, F_SETFL, flags | O_NONBLOCK) < 0) {
+        logEvent(LogLevel::ERROR, "Failed to set non-blocking mode: " + std::to_string(SOCKET_ERROR_CODE));
+        return false;
+    }
+#endif
+    
     return true;
 }
 
