@@ -16,6 +16,7 @@
 
 #include "simple_tftpd/tftp_connection.hpp"
 #include <iostream>
+#include <filesystem>
 
 namespace simple_tftpd {
 
@@ -207,12 +208,81 @@ bool TftpConnection::sendAcknowledgment(uint16_t block_number) {
 }
 
 bool TftpConnection::openReadFile(const std::string& filename) {
-    // Basic implementation - just return true for now
+    if (!validateFileAccess(filename, false)) {
+        return false;
+    }
+    
+    // Build full path
+    std::string full_path = config_->getRootDirectory() + "/" + filename;
+    
+    // Check if file exists
+    std::ifstream test_file(full_path);
+    if (!test_file.good()) {
+        logEvent(LogLevel::WARNING, "File not found: " + full_path);
+        return false;
+    }
+    test_file.close();
+    
+    // Check file size
+    std::ifstream file(full_path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        logEvent(LogLevel::ERROR, "Failed to open file for reading: " + full_path);
+        return false;
+    }
+    
+    std::streampos file_size = file.tellg();
+    if (file_size > static_cast<std::streampos>(config_->getMaxFileSize())) {
+        logEvent(LogLevel::WARNING, "File too large: " + std::to_string(file_size) + " bytes");
+        file.close();
+        return false;
+    }
+    
+    file.close();
+    
+    // Open file for reading
+    read_file_.open(full_path, std::ios::binary);
+    if (!read_file_.is_open()) {
+        logEvent(LogLevel::ERROR, "Failed to open file for reading: " + full_path);
+        return false;
+    }
+    
+    logEvent(LogLevel::INFO, "Opened file for reading: " + full_path);
     return true;
 }
 
 bool TftpConnection::openWriteFile(const std::string& filename) {
-    // Basic implementation - just return true for now
+    if (!validateFileAccess(filename, true)) {
+        return false;
+    }
+    
+    // Build full path
+    std::string full_path = config_->getRootDirectory() + "/" + filename;
+    
+    // Check if file already exists and overwrite protection is enabled
+    if (config_->isOverwriteProtectionEnabled()) {
+        std::ifstream test_file(full_path);
+        if (test_file.good()) {
+            logEvent(LogLevel::WARNING, "File already exists and overwrite protection is enabled: " + full_path);
+            test_file.close();
+            return false;
+        }
+        test_file.close();
+    }
+    
+    // Create directory if it doesn't exist
+    std::string dir_path = full_path.substr(0, full_path.find_last_of('/'));
+    if (!dir_path.empty()) {
+        std::filesystem::create_directories(dir_path);
+    }
+    
+    // Open file for writing
+    write_file_.open(full_path, std::ios::binary | std::ios::out);
+    if (!write_file_.is_open()) {
+        logEvent(LogLevel::ERROR, "Failed to open file for writing: " + full_path);
+        return false;
+    }
+    
+    logEvent(LogLevel::INFO, "Opened file for writing: " + full_path);
     return true;
 }
 
@@ -226,7 +296,64 @@ void TftpConnection::closeFiles() {
 }
 
 bool TftpConnection::validateFileAccess(const std::string& filename, bool for_write) {
-    // Basic implementation - just return true for now
+    if (!config_) {
+        return false;
+    }
+    
+    // Check if operation is allowed
+    if (for_write && !config_->isWriteEnabled()) {
+        logEvent(LogLevel::WARNING, "Write operations are disabled");
+        return false;
+    }
+    
+    if (!for_write && !config_->isReadEnabled()) {
+        logEvent(LogLevel::WARNING, "Read operations are disabled");
+        return false;
+    }
+    
+    // Validate filename
+    if (filename.empty() || filename.length() > TFTP_MAX_FILENAME_LENGTH) {
+        logEvent(LogLevel::WARNING, "Invalid filename: " + filename);
+        return false;
+    }
+    
+    // Check for path traversal attacks
+    if (filename.find("..") != std::string::npos || filename.find("/") == 0) {
+        logEvent(LogLevel::WARNING, "Path traversal attempt detected: " + filename);
+        return false;
+    }
+    
+    // Build full path
+    std::string full_path = config_->getRootDirectory() + "/" + filename;
+    
+    // Normalize path (remove double slashes, etc.)
+    std::string normalized_path;
+    bool last_was_slash = false;
+    for (char c : full_path) {
+        if (c == '/') {
+            if (!last_was_slash) {
+                normalized_path += c;
+            }
+            last_was_slash = true;
+        } else {
+            normalized_path += c;
+            last_was_slash = false;
+        }
+    }
+    
+    // Ensure path is within root directory
+    if (normalized_path.find(config_->getRootDirectory()) != 0) {
+        logEvent(LogLevel::WARNING, "Path outside root directory: " + normalized_path);
+        return false;
+    }
+    
+    // Check if directory is allowed
+    std::string dir_path = normalized_path.substr(0, normalized_path.find_last_of('/'));
+    if (!config_->isDirectoryAllowed(dir_path)) {
+        logEvent(LogLevel::WARNING, "Directory not allowed: " + dir_path);
+        return false;
+    }
+    
     return true;
 }
 
