@@ -18,6 +18,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <json/json.h>
 
 namespace simple_tftpd {
 
@@ -67,9 +68,21 @@ bool TftpConfig::loadFromFile(const std::string& config_file) {
 }
 
 bool TftpConfig::loadFromJson(const std::string& json_config) {
-    // For now, just return true as we haven't implemented JSON parsing yet
-    // This will be implemented when we add the actual JSON parsing functionality
-    return true;
+    try {
+        Json::Value root;
+        Json::CharReaderBuilder builder;
+        std::string errors;
+        
+        std::istringstream json_stream(json_config);
+        
+        if (!Json::parseFromStream(builder, json_stream, &root, &errors)) {
+            return false;
+        }
+        
+        return parseJson(root);
+    } catch (const std::exception& e) {
+        return false;
+    }
 }
 
 bool TftpConfig::saveToFile(const std::string& config_file) const {
@@ -242,6 +255,114 @@ void TftpConfig::setConsoleLogging(bool enable) {
 
 bool TftpConfig::isConsoleLoggingEnabled() const {
     return console_logging_;
+}
+
+bool TftpConfig::parseJson(const Json::Value& root) {
+    try {
+        // Parse network settings
+        if (root.isMember("network")) {
+            const Json::Value& network = root["network"];
+            
+            if (network.isMember("listen_address")) {
+                listen_address_ = network["listen_address"].asString();
+            }
+            
+            if (network.isMember("listen_port")) {
+                listen_port_ = static_cast<port_t>(network["listen_port"].asUInt());
+            }
+            
+            if (network.isMember("ipv6_enabled")) {
+                ipv6_enabled_ = network["ipv6_enabled"].asBool();
+            }
+        }
+        
+        // Parse filesystem settings
+        if (root.isMember("filesystem")) {
+            const Json::Value& filesystem = root["filesystem"];
+            
+            if (filesystem.isMember("root_directory")) {
+                root_directory_ = filesystem["root_directory"].asString();
+            }
+            
+            if (filesystem.isMember("allowed_directories")) {
+                allowed_directories_.clear();
+                const Json::Value& dirs = filesystem["allowed_directories"];
+                for (const auto& dir : dirs) {
+                    allowed_directories_.push_back(dir.asString());
+                }
+            }
+        }
+        
+        // Parse security settings
+        if (root.isMember("security")) {
+            const Json::Value& security = root["security"];
+            
+            if (security.isMember("read_enabled")) {
+                read_enabled_ = security["read_enabled"].asBool();
+            }
+            
+            if (security.isMember("write_enabled")) {
+                write_enabled_ = security["write_enabled"].asBool();
+            }
+            
+            if (security.isMember("max_file_size")) {
+                max_file_size_ = static_cast<size_t>(security["max_file_size"].asUInt64());
+            }
+            
+            if (security.isMember("overwrite_protection")) {
+                overwrite_protection_ = security["overwrite_protection"].asBool();
+            }
+        }
+        
+        // Parse performance settings
+        if (root.isMember("performance")) {
+            const Json::Value& performance = root["performance"];
+            
+            if (performance.isMember("block_size")) {
+                block_size_ = static_cast<uint16_t>(performance["block_size"].asUInt());
+            }
+            
+            if (performance.isMember("timeout")) {
+                timeout_ = static_cast<uint16_t>(performance["timeout"].asUInt());
+            }
+            
+            if (performance.isMember("window_size")) {
+                window_size_ = static_cast<uint16_t>(performance["window_size"].asUInt());
+            }
+        }
+        
+        // Parse logging settings
+        if (root.isMember("logging")) {
+            const Json::Value& logging = root["logging"];
+            
+            if (logging.isMember("level")) {
+                std::string level_str = logging["level"].asString();
+                if (level_str == "DEBUG") {
+                    log_level_ = LogLevel::DEBUG;
+                } else if (level_str == "INFO") {
+                    log_level_ = LogLevel::INFO;
+                } else if (level_str == "WARNING") {
+                    log_level_ = LogLevel::WARNING;
+                } else if (level_str == "ERROR") {
+                    log_level_ = LogLevel::ERROR;
+                } else if (level_str == "FATAL") {
+                    log_level_ = LogLevel::FATAL;
+                }
+            }
+            
+            if (logging.isMember("log_file")) {
+                log_file_ = logging["log_file"].asString();
+            }
+            
+            if (logging.isMember("console_logging")) {
+                console_logging_ = logging["console_logging"].asBool();
+            }
+        }
+        
+        return true;
+    } catch (const std::exception& e) {
+        return false;
+    }
 }
 
 } // namespace simple_tftpd
