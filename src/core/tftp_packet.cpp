@@ -342,11 +342,26 @@ bool TftpDataPacket::parse(const uint8_t* data, size_t size) {
         return false;
     }
     
-    if (size < 4) {
+    if (opcode_ != TftpOpcode::DATA) {
         return false;
     }
     
-    return parseBlockNumber(data, 2);
+    if (size < 4) { // Minimum: opcode(2) + block_number(2)
+        return false;
+    }
+    
+    if (!parseBlockNumber(data, 2)) {
+        return false;
+    }
+    
+    // Extract file data (everything after block number)
+    if (size > 4) {
+        file_data_.assign(data + 4, data + size);
+    } else {
+        file_data_.clear();
+    }
+    
+    return true;
 }
 
 std::vector<uint8_t> TftpDataPacket::serialize() const {
@@ -365,9 +380,10 @@ std::string TftpDataPacket::getTypeString() const {
 }
 
 bool TftpDataPacket::parseBlockNumber(const uint8_t* data, size_t offset) {
-    // Note: This is a basic implementation - in a real implementation,
-    // we would need to pass the total data size as a parameter
-    // For now, just assume we have enough data
+    if (offset + 1 >= 512) { // Basic bounds check
+        return false;
+    }
+    
     block_number_ = (data[offset] << 8) | data[offset + 1];
     return true;
 }
@@ -399,7 +415,11 @@ bool TftpAckPacket::parse(const uint8_t* data, size_t size) {
         return false;
     }
     
-    if (size < 4) {
+    if (opcode_ != TftpOpcode::ACK) {
+        return false;
+    }
+    
+    if (size != 4) { // ACK packets are exactly 4 bytes: opcode(2) + block_number(2)
         return false;
     }
     
@@ -421,9 +441,10 @@ std::string TftpAckPacket::getTypeString() const {
 }
 
 bool TftpAckPacket::parseBlockNumber(const uint8_t* data, size_t offset) {
-    // Note: This is a basic implementation - in a real implementation,
-    // we would need to pass the total data size as a parameter
-    // For now, just assume we have enough data
+    if (offset + 1 >= 4) { // ACK packets are only 4 bytes total
+        return false;
+    }
+    
     block_number_ = (data[offset] << 8) | data[offset + 1];
     return true;
 }
@@ -463,11 +484,27 @@ bool TftpErrorPacket::parse(const uint8_t* data, size_t size) {
         return false;
     }
     
-    if (size < 4) {
+    if (opcode_ != TftpOpcode::ERROR) {
         return false;
     }
     
-    return parseErrorCode(data, 2);
+    if (size < 5) { // Minimum: opcode(2) + error_code(2) + error_message(1)
+        return false;
+    }
+    
+    if (!parseErrorCode(data, 2)) {
+        return false;
+    }
+    
+    // Parse error message (null-terminated string)
+    size_t offset = 4;
+    error_message_.clear();
+    while (offset < size && data[offset] != 0) {
+        error_message_ += static_cast<char>(data[offset]);
+        offset++;
+    }
+    
+    return true;
 }
 
 std::vector<uint8_t> TftpErrorPacket::serialize() const {
@@ -487,12 +524,18 @@ std::string TftpErrorPacket::getTypeString() const {
 }
 
 bool TftpErrorPacket::parseErrorCode(const uint8_t* data, size_t offset) {
-    // Note: This is a basic implementation - in a real implementation,
-    // we would need to pass the total data size as a parameter
-    // For now, just assume we have enough data
-    uint16_t error_code_value = (data[offset] << 8) | data[offset + 1];
-    error_code_ = static_cast<TftpError>(error_code_value);
+    if (offset + 1 >= 512) { // Basic bounds check
+        return false;
+    }
     
+    uint16_t error_code_value = (data[offset] << 8) | data[offset + 1];
+    
+    // Validate error code is within known range
+    if (error_code_value > static_cast<uint16_t>(TftpError::PLATFORM_ERROR)) {
+        return false;
+    }
+    
+    error_code_ = static_cast<TftpError>(error_code_value);
     return true;
 }
 
