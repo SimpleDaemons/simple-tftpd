@@ -204,6 +204,27 @@ public:
      * @return true if sent successfully, false otherwise
      */
     bool sendOptionAck(const TftpOptions& options);
+    
+    /**
+     * @brief Handle connection timeout
+     * @return true if handled successfully, false otherwise
+     */
+    bool handleTimeout();
+    
+    /**
+     * @brief Handle invalid packet
+     * @param reason Reason for invalidity
+     * @return true if handled successfully, false otherwise
+     */
+    bool handleInvalidPacket(const std::string& reason);
+    
+    /**
+     * @brief Handle file operation error
+     * @param operation Operation that failed
+     * @param filename Filename involved
+     * @return true if handled successfully, false otherwise
+     */
+    bool handleFileError(const std::string& operation, const std::string& filename);
 
 private:
     TftpServer& server_;

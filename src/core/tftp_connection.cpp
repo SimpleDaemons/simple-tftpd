@@ -308,7 +308,15 @@ void TftpConnection::handleAckPacket(const TftpAckPacket& packet) {
 
 void TftpConnection::handleErrorPacket(const TftpErrorPacket& packet) {
     logEvent(LogLevel::ERROR, "Handling error packet: " + packet.getErrorMessage());
-    // Basic implementation - just log for now
+    
+    // Set connection state to error
+    setState(TftpConnectionState::ERROR, packet.getErrorMessage());
+    
+    // Close files and cleanup
+    closeFiles();
+    
+    // Stop the connection
+    stop();
 }
 
 bool TftpConnection::processReadRequest(const TftpRequestPacket& packet) {
@@ -672,6 +680,37 @@ bool TftpConnection::sendOptionAck(const TftpOptions& options) {
     
     updateActivity();
     return true;
+}
+
+bool TftpConnection::handleTimeout() {
+    logEvent(LogLevel::WARNING, "Connection timeout");
+    sendError(TftpError::TIMEOUT, "Connection timeout");
+    setState(TftpConnectionState::ERROR, "Connection timeout");
+    return false;
+}
+
+bool TftpConnection::handleInvalidPacket(const std::string& reason) {
+    logEvent(LogLevel::WARNING, "Invalid packet received: " + reason);
+    sendError(TftpError::INVALID_PACKET, "Invalid packet: " + reason);
+    return false;
+}
+
+bool TftpConnection::handleFileError(const std::string& operation, const std::string& filename) {
+    logEvent(LogLevel::ERROR, "File " + operation + " error for: " + filename);
+    
+    TftpError error_code = TftpError::PLATFORM_ERROR;
+    std::string error_message = "File " + operation + " error";
+    
+    if (operation == "read") {
+        error_code = TftpError::FILE_NOT_FOUND;
+        error_message = "File not found: " + filename;
+    } else if (operation == "write") {
+        error_code = TftpError::DISK_FULL;
+        error_message = "Disk full or write error: " + filename;
+    }
+    
+    sendError(error_code, error_message);
+    return false;
 }
 
 } // namespace simple_tftpd
