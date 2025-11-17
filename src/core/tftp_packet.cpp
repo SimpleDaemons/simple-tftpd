@@ -249,24 +249,28 @@ bool TftpRequestPacket::parseOptions(const uint8_t* data, size_t offset, size_t 
         if (option_name == "blksize") {
             try {
                 options_.blksize = static_cast<uint16_t>(std::stoi(option_value));
+                options_.has_blksize = true;
             } catch (...) {
                 // Invalid blksize value, ignore
             }
         } else if (option_name == "timeout") {
             try {
                 options_.timeout = static_cast<uint16_t>(std::stoi(option_value));
+                options_.has_timeout = true;
             } catch (...) {
                 // Invalid timeout value, ignore
             }
         } else if (option_name == "tsize") {
             try {
-                options_.tsize = static_cast<uint16_t>(std::stoi(option_value));
+                options_.tsize = static_cast<uint32_t>(std::stoul(option_value));
+                options_.has_tsize = true;
             } catch (...) {
                 // Invalid tsize value, ignore
             }
         } else if (option_name == "windowsize") {
             try {
                 options_.windowsize = static_cast<uint16_t>(std::stoi(option_value));
+                options_.has_windowsize = true;
             } catch (...) {
                 // Invalid windowsize value, ignore
             }
@@ -278,8 +282,7 @@ bool TftpRequestPacket::parseOptions(const uint8_t* data, size_t offset, size_t 
 }
 
 void TftpRequestPacket::serializeOptions(std::vector<uint8_t>& data) const {
-    // Only serialize non-default options
-    if (options_.blksize != 512) {
+    if (options_.has_blksize) {
         std::string blksize_str = std::to_string(options_.blksize);
         data.insert(data.end(), "blksize", "blksize" + 7);
         data.push_back(0);
@@ -287,7 +290,7 @@ void TftpRequestPacket::serializeOptions(std::vector<uint8_t>& data) const {
         data.push_back(0);
     }
     
-    if (options_.timeout != 5) {
+    if (options_.has_timeout) {
         std::string timeout_str = std::to_string(options_.timeout);
         data.insert(data.end(), "timeout", "timeout" + 7);
         data.push_back(0);
@@ -295,7 +298,7 @@ void TftpRequestPacket::serializeOptions(std::vector<uint8_t>& data) const {
         data.push_back(0);
     }
     
-    if (options_.tsize != 0) {
+    if (options_.has_tsize) {
         std::string tsize_str = std::to_string(options_.tsize);
         data.insert(data.end(), "tsize", "tsize" + 5);
         data.push_back(0);
@@ -303,7 +306,7 @@ void TftpRequestPacket::serializeOptions(std::vector<uint8_t>& data) const {
         data.push_back(0);
     }
     
-    if (options_.windowsize != 1) {
+    if (options_.has_windowsize) {
         std::string windowsize_str = std::to_string(options_.windowsize);
         data.insert(data.end(), "windowsize", "windowsize" + 10);
         data.push_back(0);

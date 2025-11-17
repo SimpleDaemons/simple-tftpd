@@ -26,6 +26,8 @@
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <map>
+#include <vector>
 
 namespace simple_tftpd {
 
@@ -227,6 +229,13 @@ public:
     bool handleFileError(const std::string& operation, const std::string& filename);
 
 private:
+    struct InFlightBlock {
+        std::vector<uint8_t> payload;
+        bool is_final = false;
+        std::chrono::steady_clock::time_point last_sent;
+        size_t retries = 0;
+    };
+    
     friend class TftpServer;
     
     TftpServer& server_;
@@ -259,16 +268,20 @@ private:
     std::ofstream write_file_;
     
     // Reliability + retransmission tracking
-    uint16_t last_block_sent_;
+    std::map<uint16_t, InFlightBlock> in_flight_blocks_;
+    uint16_t next_block_to_send_;
     uint16_t last_ack_block_;
-    bool awaiting_ack_;
-    bool awaiting_data_;
-    bool last_block_final_;
-    size_t retry_count_;
-    size_t ack_retry_count_;
     uint16_t max_retries_;
-    std::vector<uint8_t> last_data_block_;
-    std::chrono::steady_clock::time_point last_packet_time_;
+    bool awaiting_data_;
+    bool sent_option_ack_;
+    bool awaiting_oack_ack_;
+    bool final_block_sent_;
+    uint16_t final_block_number_;
+    uint16_t negotiated_block_size_;
+    uint16_t negotiated_window_size_;
+    uint64_t current_file_size_;
+    uint64_t advertised_file_size_;
+    size_t ack_retry_count_;
     std::chrono::steady_clock::time_point last_ack_time_;
     
     /**
@@ -276,6 +289,8 @@ private:
      */
     void workerThread();
     bool handleTimeoutTick();
+    bool fillSendWindow();
+    bool resendBlock(uint16_t block_number);
     
     /**
      * @brief Handle read request
@@ -327,16 +342,6 @@ private:
      * @return true if sent successfully, false otherwise
      */
     bool sendDataBlock(uint16_t block_number, bool is_retry = false);
-    
-    /**
-     * @brief Send the next sequential data block
-     */
-    bool sendNextDataBlock();
-    
-    /**
-     * @brief Resend the most recently transmitted data block
-     */
-    bool resendLastDataBlock();
     
     /**
      * @brief Send acknowledgment
@@ -396,6 +401,8 @@ private:
      * @param message Message to log
      */
     void logEvent(LogLevel level, const std::string& message);
+
+    bool applyRequestOptions(const TftpOptions& request_options, bool is_read_request);
 };
 
 } // namespace simple_tftpd

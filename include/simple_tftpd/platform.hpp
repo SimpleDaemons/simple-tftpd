@@ -135,11 +135,15 @@ enum class TftpMode {
 struct TftpOptions {
     uint16_t blksize = 512;
     uint16_t timeout = 5;
-    uint16_t tsize = 0;
+    uint32_t tsize = 0;
     uint16_t windowsize = 1;
     bool multicast = false;
     std::string multicast_ip;
     uint16_t multicast_port = 0;
+    bool has_blksize = false;
+    bool has_timeout = false;
+    bool has_tsize = false;
+    bool has_windowsize = false;
 };
 
 } // namespace simple_tftpd
