@@ -18,9 +18,28 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
+#include <cctype>
 #include <json/json.h>
 
 namespace simple_tftpd {
+
+namespace {
+
+std::string normalizeExtension(const std::string& ext) {
+    std::string normalized = ext;
+    if (!normalized.empty() && normalized.front() == '.') {
+        normalized.erase(normalized.begin());
+    }
+    
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    
+    return normalized;
+}
+
+} // namespace
 
 TftpConfig::TftpConfig() {
     setDefaults();
@@ -37,12 +56,14 @@ void TftpConfig::setDefaults() {
     // File system settings
     root_directory_ = "/var/tftp";
     allowed_directories_.clear();
+    allowed_extensions_.clear();
     
     // Security settings
     read_enabled_ = true;
     write_enabled_ = false;
     max_file_size_ = 100 * 1024 * 1024; // 100MB
     overwrite_protection_ = true;
+    allowed_clients_.clear();
     
     // Performance settings
     block_size_ = 512;
@@ -87,15 +108,55 @@ bool TftpConfig::loadFromJson(const std::string& json_config) {
 }
 
 bool TftpConfig::saveToFile(const std::string& config_file) const {
-    // For now, just return true as we haven't implemented JSON serialization yet
-    // This will be implemented when we add the actual JSON serialization functionality
-    return true;
+    std::ofstream file(config_file);
+    if (!file.is_open()) {
+        return false;
+    }
+    
+    file << toJson();
+    return static_cast<bool>(file);
 }
 
 std::string TftpConfig::toJson() const {
-    // For now, return a basic JSON string
-    // This will be implemented when we add the actual JSON serialization functionality
-    return "{}";
+    Json::Value root;
+    
+    auto& network = root["network"];
+    network["listen_address"] = listen_address_;
+    network["listen_port"] = listen_port_;
+    network["ipv6_enabled"] = ipv6_enabled_;
+    
+    auto& filesystem = root["filesystem"];
+    filesystem["root_directory"] = root_directory_;
+    for (const auto& dir : allowed_directories_) {
+        filesystem["allowed_directories"].append(dir);
+    }
+    
+    auto& security = root["security"];
+    security["read_enabled"] = read_enabled_;
+    security["write_enabled"] = write_enabled_;
+    security["max_file_size"] = static_cast<Json::UInt64>(max_file_size_);
+    security["overwrite_protection"] = overwrite_protection_;
+    for (const auto& ext : allowed_extensions_) {
+        security["allowed_extensions"].append(ext);
+    }
+    for (const auto& client : allowed_clients_) {
+        security["allowed_clients"].append(client);
+    }
+    
+    auto& performance = root["performance"];
+    performance["block_size"] = block_size_;
+    performance["timeout"] = timeout_;
+    performance["window_size"] = window_size_;
+    performance["max_retries"] = max_retries_;
+    
+    auto& logging = root["logging"];
+    logging["level"] = Logger::levelToString(log_level_);
+    logging["log_file"] = log_file_;
+    logging["console_logging"] = console_logging_;
+    
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "  ";
+    return Json::writeString(builder, root);
 }
 
 bool TftpConfig::validate() const {
@@ -179,6 +240,30 @@ bool TftpConfig::isDirectoryAllowed(const std::string& dir) const {
     return false;
 }
 
+void TftpConfig::setAllowedExtensions(const std::vector<std::string>& extensions) {
+    allowed_extensions_.clear();
+    allowed_extensions_.reserve(extensions.size());
+    for (const auto& ext : extensions) {
+        auto normalized = normalizeExtension(ext);
+        if (!normalized.empty()) {
+            allowed_extensions_.push_back(normalized);
+        }
+    }
+}
+
+std::vector<std::string> TftpConfig::getAllowedExtensions() const {
+    return allowed_extensions_;
+}
+
+bool TftpConfig::isExtensionAllowed(const std::string& extension) const {
+    if (allowed_extensions_.empty()) {
+        return true;
+    }
+    
+    auto normalized = normalizeExtension(extension);
+    return std::find(allowed_extensions_.begin(), allowed_extensions_.end(), normalized) != allowed_extensions_.end();
+}
+
 // Security configuration
 void TftpConfig::setReadEnabled(bool enable) {
     read_enabled_ = enable;
@@ -210,6 +295,28 @@ void TftpConfig::setOverwriteProtection(bool enable) {
 
 bool TftpConfig::isOverwriteProtectionEnabled() const {
     return overwrite_protection_;
+}
+
+void TftpConfig::setAllowedClients(const std::vector<std::string>& clients) {
+    allowed_clients_ = clients;
+}
+
+std::vector<std::string> TftpConfig::getAllowedClients() const {
+    return allowed_clients_;
+}
+
+bool TftpConfig::isClientAllowed(const std::string& address) const {
+    if (allowed_clients_.empty()) {
+        return true;
+    }
+    
+    for (const auto& allowed : allowed_clients_) {
+        if (allowed == "*" || allowed == address) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 // Performance configuration
@@ -324,6 +431,23 @@ bool TftpConfig::parseJson(const Json::Value& root) {
             
             if (security.isMember("overwrite_protection")) {
                 overwrite_protection_ = security["overwrite_protection"].asBool();
+            }
+            
+            if (security.isMember("allowed_extensions")) {
+                std::vector<std::string> extensions;
+                const auto& exts = security["allowed_extensions"];
+                for (const auto& ext : exts) {
+                    extensions.push_back(ext.asString());
+                }
+                setAllowedExtensions(extensions);
+            }
+            
+            if (security.isMember("allowed_clients")) {
+                allowed_clients_.clear();
+                const auto& clients = security["allowed_clients"];
+                for (const auto& client : clients) {
+                    allowed_clients_.push_back(client.asString());
+                }
             }
         }
         

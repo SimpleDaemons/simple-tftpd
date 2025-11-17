@@ -149,6 +149,25 @@ public:
      */
     bool isDirectoryAllowed(const std::string& dir) const;
     
+    /**
+     * @brief Set allowed file extensions
+     * @param extensions List of extensions (without dot)
+     */
+    void setAllowedExtensions(const std::vector<std::string>& extensions);
+    
+    /**
+     * @brief Get allowed file extensions
+     * @return Vector of extensions
+     */
+    std::vector<std::string> getAllowedExtensions() const;
+    
+    /**
+     * @brief Check if extension is allowed
+     * @param extension Extension without dot
+     * @return true if allowed
+     */
+    bool isExtensionAllowed(const std::string& extension) const;
+    
     // Security configuration
     /**
      * @brief Enable/disable read operations
@@ -197,6 +216,25 @@ public:
      * @return true if overwrite protection is enabled
      */
     bool isOverwriteProtectionEnabled() const;
+    
+    /**
+     * @brief Set allowed client addresses
+     * @param clients List of IPv4/IPv6 addresses
+     */
+    void setAllowedClients(const std::vector<std::string>& clients);
+    
+    /**
+     * @brief Get allowed client addresses
+     * @return Vector of address strings
+     */
+    std::vector<std::string> getAllowedClients() const;
+    
+    /**
+     * @brief Check if a client address is allowed
+     * @param address Address to check
+     * @return true if permitted
+     */
+    bool isClientAllowed(const std::string& address) const;
     
     // Performance configuration
     /**
@@ -293,12 +331,14 @@ private:
     // File system settings
     std::string root_directory_;
     std::vector<std::string> allowed_directories_;
+    std::vector<std::string> allowed_extensions_;
     
     // Security settings
     bool read_enabled_;
     bool write_enabled_;
     size_t max_file_size_;
     bool overwrite_protection_;
+    std::vector<std::string> allowed_clients_;
     
     // Performance settings
     uint16_t block_size_;

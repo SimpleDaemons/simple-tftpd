@@ -681,6 +681,14 @@ bool TftpConnection::validateFileAccess(const std::string& filename, bool for_wr
         return false;
     }
     
+    // Enforce allowed file extensions (if configured)
+    std::string::size_type dot_pos = filename.find_last_of('.');
+    std::string extension = (dot_pos == std::string::npos) ? std::string() : filename.substr(dot_pos + 1);
+    if (!config_->isExtensionAllowed(extension)) {
+        logEvent(LogLevel::WARNING, "File extension not allowed: " + filename);
+        return false;
+    }
+    
     return true;
 }
 

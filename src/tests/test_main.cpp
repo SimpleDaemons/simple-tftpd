@@ -65,6 +65,27 @@ TEST(TftpConfigTest, MaxRetriesConfiguration) {
     EXPECT_EQ(config.getTimeout(), 9);
 }
 
+TEST(TftpConfigTest, AllowedExtensions) {
+    simple_tftpd::TftpConfig config;
+    config.setAllowedExtensions({"bin", ".IMG"});
+    
+    EXPECT_TRUE(config.isExtensionAllowed("bin"));
+    EXPECT_TRUE(config.isExtensionAllowed("IMG"));
+    EXPECT_FALSE(config.isExtensionAllowed("txt"));
+}
+
+TEST(TftpConfigTest, AllowedClients) {
+    simple_tftpd::TftpConfig config;
+    EXPECT_TRUE(config.isClientAllowed("10.0.0.1")); // default allow
+    
+    config.setAllowedClients({"192.168.1.5", "fe80::1"});
+    EXPECT_TRUE(config.isClientAllowed("192.168.1.5"));
+    EXPECT_FALSE(config.isClientAllowed("10.0.0.1"));
+    
+    config.setAllowedClients({"*"});
+    EXPECT_TRUE(config.isClientAllowed("203.0.113.7"));
+}
+
 // Test TftpPacket class
 TEST(TftpPacketTest, BasicPacket) {
     // Create a basic packet

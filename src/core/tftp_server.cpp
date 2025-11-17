@@ -267,6 +267,11 @@ void TftpServer::listenerThread() {
                 client_port = ntohs(addr6->sin6_port);
             }
             
+            if (config_ && !config_->isClientAllowed(client_addr_str)) {
+                logEvent(LogLevel::WARNING, "Rejected packet from unauthorized client " + client_addr_str);
+                continue;
+            }
+            
             // Handle the received packet
             handlePacket(buffer, static_cast<size_t>(bytes_received), client_addr_str, client_port);
         } else if (bytes_received < 0) {
