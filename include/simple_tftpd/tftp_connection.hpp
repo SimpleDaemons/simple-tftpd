@@ -227,6 +227,8 @@ public:
     bool handleFileError(const std::string& operation, const std::string& filename);
 
 private:
+    friend class TftpServer;
+    
     TftpServer& server_;
     std::string client_addr_;
     port_t client_port_;
@@ -256,10 +258,24 @@ private:
     std::ifstream read_file_;
     std::ofstream write_file_;
     
+    // Reliability + retransmission tracking
+    uint16_t last_block_sent_;
+    uint16_t last_ack_block_;
+    bool awaiting_ack_;
+    bool awaiting_data_;
+    bool last_block_final_;
+    size_t retry_count_;
+    size_t ack_retry_count_;
+    uint16_t max_retries_;
+    std::vector<uint8_t> last_data_block_;
+    std::chrono::steady_clock::time_point last_packet_time_;
+    std::chrono::steady_clock::time_point last_ack_time_;
+    
     /**
      * @brief Main connection worker thread
      */
     void workerThread();
+    bool handleTimeoutTick();
     
     /**
      * @brief Handle read request
@@ -310,14 +326,24 @@ private:
      * @param block_number Block number to send
      * @return true if sent successfully, false otherwise
      */
-    bool sendDataBlock(uint16_t block_number);
+    bool sendDataBlock(uint16_t block_number, bool is_retry = false);
+    
+    /**
+     * @brief Send the next sequential data block
+     */
+    bool sendNextDataBlock();
+    
+    /**
+     * @brief Resend the most recently transmitted data block
+     */
+    bool resendLastDataBlock();
     
     /**
      * @brief Send acknowledgment
      * @param block_number Block number to acknowledge
      * @return true if sent successfully, false otherwise
      */
-    bool sendAcknowledgment(uint16_t block_number);
+    bool sendAcknowledgment(uint16_t block_number, bool track_state = true);
     
     /**
      * @brief Open file for reading

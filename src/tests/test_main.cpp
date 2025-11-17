@@ -43,6 +43,28 @@ TEST(TftpConfigTest, DefaultValues) {
     EXPECT_EQ(config.getMaxFileSize(), 104857600);
 }
 
+TEST(TftpConfigTest, MaxRetriesConfiguration) {
+    simple_tftpd::TftpConfig config;
+    EXPECT_EQ(config.getMaxRetries(), 5);
+    
+    config.setMaxRetries(0); // should clamp to at least 1
+    EXPECT_EQ(config.getMaxRetries(), 1);
+    
+    config.setMaxRetries(8);
+    EXPECT_EQ(config.getMaxRetries(), 8);
+    
+    const std::string json = R"({
+        "performance": {
+            "max_retries": 11,
+            "timeout": 9
+        }
+    })";
+    
+    EXPECT_TRUE(config.loadFromJson(json));
+    EXPECT_EQ(config.getMaxRetries(), 11);
+    EXPECT_EQ(config.getTimeout(), 9);
+}
+
 // Test TftpPacket class
 TEST(TftpPacketTest, BasicPacket) {
     // Create a basic packet

@@ -48,6 +48,7 @@ void TftpConfig::setDefaults() {
     block_size_ = 512;
     timeout_ = 5;
     window_size_ = 1;
+    max_retries_ = 5;
     
     // Logging settings
     log_level_ = LogLevel::INFO;
@@ -112,6 +113,10 @@ bool TftpConfig::validate() const {
     }
     
     if (timeout_ == 0 || timeout_ > 255) {
+        return false;
+    }
+    
+    if (max_retries_ == 0 || max_retries_ > 25) {
         return false;
     }
     
@@ -232,6 +237,14 @@ uint16_t TftpConfig::getWindowSize() const {
     return window_size_;
 }
 
+void TftpConfig::setMaxRetries(uint16_t retries) {
+    max_retries_ = retries == 0 ? 1 : retries;
+}
+
+uint16_t TftpConfig::getMaxRetries() const {
+    return max_retries_;
+}
+
 // Logging configuration
 void TftpConfig::setLogLevel(LogLevel level) {
     log_level_ = level;
@@ -328,6 +341,10 @@ bool TftpConfig::parseJson(const Json::Value& root) {
             
             if (performance.isMember("window_size")) {
                 window_size_ = static_cast<uint16_t>(performance["window_size"].asUInt());
+            }
+            
+            if (performance.isMember("max_retries")) {
+                max_retries_ = static_cast<uint16_t>(performance["max_retries"].asUInt());
             }
         }
         

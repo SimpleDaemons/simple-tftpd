@@ -17,6 +17,7 @@
 #include "simple_tftpd/tftp_server.hpp"
 #include <iostream>
 #include <sstream>
+#include <cstring>
 
 namespace simple_tftpd {
 
@@ -516,7 +517,7 @@ bool TftpServer::bindSocket() {
         addr6.sin6_port = htons(listen_port_);
         
         if (listen_address_ == "0.0.0.0" || listen_address_ == "::") {
-            addr6.sin6_addr = in6addr_any;
+            std::memset(&addr6.sin6_addr, 0, sizeof(addr6.sin6_addr));
         } else {
             if (inet_pton(AF_INET6, listen_address_.c_str(), &addr6.sin6_addr) != 1) {
                 logEvent(LogLevel::ERROR, "Invalid IPv6 address: " + listen_address_);
