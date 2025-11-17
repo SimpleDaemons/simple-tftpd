@@ -108,20 +108,26 @@ The daemon can be configured using a JSON configuration file or command-line opt
     },
     "filesystem": {
         "root_directory": "/var/tftp",
-        "allowed_directories": ["/var/tftp/public"]
+        "allowed_directories": ["/var/tftp/public", "/var/tftp/private"]
     },
     "security": {
         "read_enabled": true,
         "write_enabled": false,
-        "max_file_size": 104857600
+        "max_file_size": 104857600,
+        "overwrite_protection": true,
+        "allowed_extensions": ["bin", "img"],
+        "allowed_clients": ["10.0.0.10", "fe80::1"]
     },
     "performance": {
         "block_size": 512,
-        "timeout": 5
+        "timeout": 5,
+        "window_size": 1,
+        "max_retries": 5
     },
     "logging": {
         "level": "INFO",
-        "log_file": "/var/log/simple-tftpd.log"
+        "log_file": "/var/log/simple-tftpd.log",
+        "console_logging": true
     }
 }
 ```
@@ -142,6 +148,7 @@ The daemon can be configured using a JSON configuration file or command-line opt
 - Directory access restrictions
 - Overwrite protection
 - Client address validation
+- File extension allow lists
 
 ## Performance Features
 

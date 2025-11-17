@@ -22,13 +22,23 @@
         "read_enabled": true,
         "write_enabled": false,
         "max_file_size": 104857600,
-        "overwrite_protection": true
+        "overwrite_protection": true,
+        "allowed_extensions": [
+            "bin",
+            "img",
+            "cfg"
+        ],
+        "allowed_clients": [
+            "192.168.1.100",
+            "fe80::1"
+        ]
     },
     
     "performance": {
         "block_size": 512,
         "timeout": 5,
-        "window_size": 1
+        "window_size": 1,
+        "max_retries": 5
     },
     
     "logging": {
