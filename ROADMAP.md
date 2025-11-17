@@ -1,61 +1,82 @@
-# Simple RSync Daemon - Development Roadmap
+# Simple TFTP Daemon - Development Roadmap
 
 ## 🎯 **Project Vision**
 
-Simple RSync Daemon aims to be the most lightweight, secure, and feature-rich rsync server implementation, providing enterprise-grade functionality with minimal resource footprint.
+Simple TFTP Daemon aims to be the most lightweight, secure, and feature-rich TFTP (Trivial File Transfer Protocol) server implementation, providing enterprise-grade functionality with minimal resource footprint while maintaining full RFC 1350 compliance.
 
-## 🚀 **Current Status (v0.1.0)**
+## 🚀 **Current Status (v0.1.0-dev)**
 
-### ✅ **Completed Features**
-- **Core Daemon**: Basic rsync daemon functionality
-- **Configuration**: JSON-based configuration system
-- **Authentication**: Basic password and OAuth2 authentication
-- **SSL/TLS**: Secure communication support
-- **Multi-platform**: Linux, macOS, and Windows support
-- **Build System**: CMake-based build with platform-specific scripts
-- **Documentation**: Comprehensive user and developer guides
-- **Service Management**: Systemd and Launchd integration
+### ✅ **Foundation in place**
+- **Core Architecture Skeleton**: `TftpServer`, `TftpConnection`, and packet classes compile and exercise the full control flow (`src/core/`)
+- **Build & Tooling**: Modern CMake project with cross-platform toolchains plus stubbed CI/test targets
+- **Configuration Loader**: JSON parsing for network/filesystem/security settings with server getters/setters
+- **Logging & Metrics Hooks**: Cross-cutting logger class, connection/server stats structs, and event callback plumbing
 
-### 🔧 **Infrastructure**
-- **Build Scripts**: Platform-specific build automation
-- **CI/CD**: Automated testing and deployment
-- **Packaging**: DEB, RPM, MSI, and ZIP package support
-- **Docker**: Containerization support
+### ⚙️ **Functional Prototypes**
+- **Packet Workflow**: RRQ/WRQ/DATA/ACK/ERROR parsing + serialization works end-to-end for basic transfers
+- **Socket Loop**: Listener thread binds UDP sockets, dispatches packets to per-client connection objects, and can answer with DATA/ACK/ERROR
+- **File Access Helpers**: Read/write helpers enforce root directory boundaries, size caps, and netascii/octet transformations
+- **Deployment Artifacts**: Early systemd/launchd units, Docker compose examples, and install scripts created but not yet validated
+
+### 📚 **Developer Experience**
+- **Documentation Set**: README, roadmap, configuration examples, and scripts docs outline intended workflows
+- **Initial Tests**: GoogleTest harness builds, with smoke tests covering config defaults and logger wiring
+
+### ⚠️ **Current Limitations**
+- **Incomplete Protocol Loop**: Retries, timeouts, block-window negotiation, and option acknowledgements beyond blksize/timeouts are still TODO
+- **I/O Reliability**: File writer/reader code lacks concurrency safety, throttling, and durability/error propagation
+- **Configuration Lifecycle**: Only loading from disk works; serialization, validation errors, and CLI overrides need work
+- **Security Model**: Directory ACLs exist but there is no authentication, per-client policy, or audit logging
+- **Testing Debt**: No integration or fuzz tests exercise real file transfers; CI only runs smoke checks
+- **Packaging Pipeline**: Service definitions and scripts exist, yet no automated release artifacts have been produced or verified
+
+## 🧭 **Progress Overview (November 2025)**
+
+- **Position**: Still in *prototype* territory—daemon boots, accepts sockets, and streams packets, but lacks production hardening.
+- **Confidence**: Happy-path RRQ/WRQ flows work in local testing, yet error paths, retries, and multi-client stress are untested.
+- **Gaps**: Security, observability, and deployment stories have placeholders without enforcement; CLI/server wiring isn’t ergonomic yet.
+- **Next Milestone**: Graduate to *v0.2.0 Core Protocol* by finishing retries/timeouts, JSON overrides, and end-to-end automated transfer tests.
 
 ## 📅 **Short-term Roadmap (v0.2.0 - Q2 2024)**
 
 ### 🔥 **High Priority**
-- **YAML Configuration Support** ⭐
-  - Add YAML configuration file support alongside JSON
-  - Implement YAML schema validation
-  - Provide configuration file conversion tools
-  - Support environment variable interpolation in YAML
-  - Add configuration file hot-reload capability
+- **Core TFTP Protocol Implementation** ⭐
+  - Complete packet parsing and generation (RRQ, WRQ, DATA, ACK, ERROR)
+  - UDP socket communication and packet handling
+  - File read/write operations with proper error handling
+  - Transfer modes support (netascii, octet, mail)
+  - Basic TFTP options support (blksize, timeout, tsize)
 
-- **Enhanced Security**
-  - Certificate-based authentication
-  - Role-based access control (RBAC)
-  - Audit logging and compliance features
-  - Rate limiting and DDoS protection
+- **JSON Configuration System**
+  - Implement JSON configuration file parsing
+  - Configuration validation and error handling
+  - Command-line override support
+  - Configuration hot-reload capability
 
-- **Performance Optimization**
-  - Connection pooling
-  - Async I/O operations
-  - Memory usage optimization
-  - Compression algorithm selection
+- **Security and Access Control**
+  - File access validation and path sanitization
+  - Directory traversal protection
+  - Read/write permission enforcement
+  - File size limits and overwrite protection
 
 ### 🎯 **Medium Priority**
-- **Monitoring & Observability**
-  - Prometheus metrics export
+- **Performance Optimization**
+  - Connection pooling and resource management
+  - Async I/O operations for better scalability
+  - Memory usage optimization
+  - Block size optimization and windowing
+
+- **Enhanced Logging and Monitoring**
   - Structured logging (JSON format)
+  - Transfer statistics and metrics
   - Health check endpoints
   - Performance profiling tools
 
-- **Advanced Authentication**
-  - LDAP/Active Directory integration
-  - Multi-factor authentication (MFA)
-  - Single sign-on (SSO) support
-  - API key management
+- **Advanced TFTP Features**
+  - Windowed transfers for better performance
+  - Multicast TFTP support
+  - Extended error handling and reporting
+  - Transfer progress tracking
 
 ## 📅 **Medium-term Roadmap (v0.3.0 - Q3 2024)**
 
@@ -63,34 +84,40 @@ Simple RSync Daemon aims to be the most lightweight, secure, and feature-rich rs
 - **Web Management Interface**
   - RESTful API for configuration management
   - Web-based dashboard for monitoring
-  - Real-time connection status
-  - Configuration file editor
+  - Real-time connection status and statistics
+  - Configuration file editor and validation
 
-- **Advanced Module System**
-  - Plugin architecture for custom modules
-  - Third-party module marketplace
-  - Module versioning and dependency management
-  - Hot-plugging of modules
+- **Advanced Security Features**
+  - Client authentication and authorization
+  - Access control lists (ACLs)
+  - TLS/SSL support for secure transfers
+  - Audit logging and compliance features
 
 - **Enterprise Features**
+  - SNMP monitoring and management
   - High availability clustering
   - Load balancing support
   - Multi-tenant isolation
-  - Backup and disaster recovery
 
 ### 🔧 **Developer Experience**
 - **SDK & Libraries**
-  - Client libraries for multiple languages
+  - TFTP client libraries for multiple languages
   - REST API client SDKs
   - Configuration management libraries
   - Testing frameworks and utilities
 
-## 📅 **Long-term Roadmap (v1.0.0 - Q4 2024)**
+- **Documentation and Examples**
+  - Complete API documentation
+  - Integration examples and tutorials
+  - Performance tuning guides
+  - Troubleshooting documentation
+
+## 📅 **Long-term Roadmap (v1.0.0 - Q1 2025)**
 
 ### 🚀 **Production Ready**
 - **Enterprise Deployment**
-  - Kubernetes operator
-  - Helm charts for easy deployment
+  - Kubernetes operator and Helm charts
+  - Docker Compose and container orchestration
   - Terraform modules for infrastructure
   - Ansible playbooks for automation
 
@@ -98,95 +125,95 @@ Simple RSync Daemon aims to be the most lightweight, secure, and feature-rich rs
   - Hardware security module (HSM) support
   - Zero-trust architecture
   - Compliance certifications (SOC2, ISO27001)
-  - Penetration testing tools
+  - Penetration testing and security audits
 
-- **Scalability**
+- **Scalability and Performance**
   - Horizontal scaling with shared storage
-  - Geographic distribution
-  - Edge computing support
+  - Geographic distribution and edge computing
   - Cloud-native deployment patterns
+  - Advanced caching and optimization
 
-## 🎯 **YAML Configuration Support Details**
+## 🎯 **Core TFTP Protocol Implementation Details**
 
-### **Phase 1: Basic YAML Support (v0.2.0)**
-- [ ] Add YAML parsing library (yaml-cpp)
-- [ ] Implement YAML configuration loader
-- [ ] Create YAML schema definition
-- [ ] Support basic YAML syntax
-- [ ] Configuration validation
+### **Phase 1: Basic TFTP Protocol (v0.2.0)**
+- [x] **Packet System** *(prototype)*: RRQ/WRQ/DATA/ACK/ERROR parsing + serialization in `src/core/tftp_packet.cpp`
+- [x] **Network Layer** *(prototype)*: UDP socket setup, listener loop, and per-connection routing in `src/core/tftp_server.cpp`
+- [ ] **File Operations**: Need deterministic error reporting, atomic writes, and buffered reads
+- [ ] **Transfer Modes**: netascii/octet/mail handling exists but lacks coverage and edge-case validation
+- [ ] **Error Handling**: Error packets exist but retry/timeout paths do not propagate failures yet
 
-### **Phase 2: Advanced YAML Features (v0.2.1)**
-- [ ] Environment variable interpolation
-- [ ] YAML anchors and references
-- [ ] Conditional configuration blocks
-- [ ] Template inheritance
-- [ ] Configuration file includes
+### **Phase 2: Advanced Protocol Features (v0.2.1)**
+- [ ] **TFTP Options**: Only `blksize`, `timeout`, and `tsize` placeholders—no negotiation state machine
+- [ ] **Performance**: No windowing, block pipelining, or async I/O
+- [ ] **Security**: Access control helpers exist yet there is no policy enforcement or telemetry
+- [ ] **Monitoring**: Stats structs exist but nothing exports/collects them
+- [ ] **Configuration**: JSON parsing works; CLI overrides, validation, and serialization remain
 
-### **Phase 3: YAML Tools (v0.2.2)**
-- [ ] JSON to YAML converter
-- [ ] YAML to JSON converter
-- [ ] Configuration file validator
-- [ ] Schema documentation generator
-- [ ] Configuration migration tools
+### **Phase 3: Enhanced Features (v0.2.2)**
+- [ ] **Multicast TFTP**: Not started
+- [ ] **Advanced Options**: Not started
+- [ ] **Caching**: Not started
+- [ ] **Logging**: Structured logging + audit trail not implemented
+- [ ] **Testing**: Need automated integration, perf, and fuzz suites
 
-### **Phase 4: Integration (v0.2.3)**
-- [ ] Hot-reload support for YAML files
-- [ ] Configuration change notifications
-- [ ] Rollback capabilities
-- [ ] Configuration versioning
-- [ ] Backup and restore
+### **Phase 4: Production Readiness (v0.2.3)**
+- [ ] **Hot-reload**: Not started
+- [ ] **Monitoring**: No health checks or metrics endpoints
+- [ ] **Documentation**: API/user docs partially drafted but not authoritative
+- [ ] **Packaging**: Artifacts/scripts exist but no reproducible build pipeline
+- [ ] **Performance**: No load or soak testing yet
 
 ## 🔧 **Technical Implementation**
 
 ### **Dependencies**
 ```cmake
-# YAML support
-find_package(yaml-cpp REQUIRED)
-target_link_libraries(simple-rsyncd yaml-cpp)
+# JSON support
+find_package(jsoncpp REQUIRED)
+target_link_libraries(simple-tftpd jsoncpp)
+
+# Optional: OpenSSL for future TLS support
+find_package(OpenSSL REQUIRED)
+target_link_libraries(simple-tftpd OpenSSL::SSL OpenSSL::Crypto)
 ```
 
 ### **Configuration Structure**
-```yaml
-# Example YAML configuration
-daemon:
-  name: "Simple RSync Daemon"
-  version: "0.2.0"
-  log_level: "info"
-  
-network:
-  bind_address: "0.0.0.0"
-  port: 873
-  ssl:
-    enabled: true
-    certificate: "/etc/ssl/certs/rsyncd.crt"
-    private_key: "/etc/ssl/private/rsyncd.key"
-    
-authentication:
-  method: "password"
-  users:
-    - username: "admin"
-      password_hash: "${ADMIN_PASSWORD_HASH}"
-      roles: ["admin"]
-      
-modules:
-  - name: "public"
-    path: "/var/public"
-    read_only: true
-    allowed_users: ["*"]
-    
-  - name: "private"
-    path: "/var/private"
-    read_only: false
-    allowed_users: ["admin", "user1"]
+```json
+{
+  "network": {
+    "listen_address": "0.0.0.0",
+    "listen_port": 69,
+    "ipv6_enabled": true
+  },
+  "filesystem": {
+    "root_directory": "/var/tftp",
+    "allowed_directories": ["/var/tftp/public", "/var/tftp/private"]
+  },
+  "security": {
+    "read_enabled": true,
+    "write_enabled": false,
+    "max_file_size": 104857600,
+    "overwrite_protection": true
+  },
+  "performance": {
+    "block_size": 512,
+    "timeout": 5,
+    "window_size": 1
+  },
+  "logging": {
+    "level": "INFO",
+    "log_file": "/var/log/simple-tftpd.log",
+    "console_logging": true
+  }
+}
 ```
 
 ## 📊 **Success Metrics**
 
 ### **Performance Targets**
 - **Startup Time**: < 100ms
-- **Memory Usage**: < 50MB base + 10MB per connection
-- **Throughput**: > 1GB/s on modern hardware
-- **Connection Handling**: > 10,000 concurrent connections
+- **Memory Usage**: < 50MB base + 5MB per connection
+- **Throughput**: > 100MB/s on modern hardware
+- **Connection Handling**: > 1,000 concurrent transfers
 
 ### **Quality Targets**
 - **Test Coverage**: > 90%
@@ -227,9 +254,9 @@ modules:
 - [Pull Request Templates](.github/PULL_REQUEST_TEMPLATE.md)
 
 ### **Community**
-- [GitHub Discussions](https://github.com/blburns/simple-rsyncd/discussions)
-- [Issue Tracker](https://github.com/blburns/simple-rsyncd/issues)
-- [Releases](https://github.com/blburns/simple-rsyncd/releases)
+- [GitHub Discussions](https://github.com/simpledaemons/simple-tftpd/discussions)
+- [Issue Tracker](https://github.com/simpledaemons/simple-tftpd/issues)
+- [Releases](https://github.com/simpledaemons/simple-tftpd/releases)
 
 ## 🔄 **Roadmap Updates**
 
@@ -239,7 +266,7 @@ This roadmap is a living document that will be updated based on:
 - **Market demands** and competitive analysis
 - **Security requirements** and compliance needs
 
-**Last Updated**: $(date)
+**Last Updated**: November 2025
 **Next Review**: Monthly
 **Version**: 1.0
 
