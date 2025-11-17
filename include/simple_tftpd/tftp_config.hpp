@@ -23,6 +23,10 @@
 #include <memory>
 #include <map>
 
+namespace Json {
+class Value;
+}
+
 namespace simple_tftpd {
 
 /**
@@ -231,6 +235,18 @@ public:
      */
     uint16_t getWindowSize() const;
     
+    /**
+     * @brief Set max retry attempts for packet retransmission
+     * @param retries Number of retries
+     */
+    void setMaxRetries(uint16_t retries);
+    
+    /**
+     * @brief Get max retry attempts
+     * @return Max retry attempts
+     */
+    uint16_t getMaxRetries() const;
+    
     // Logging configuration
     /**
      * @brief Set log level
@@ -288,6 +304,7 @@ private:
     uint16_t block_size_;
     uint16_t timeout_;
     uint16_t window_size_;
+    uint16_t max_retries_;
     
     // Logging settings
     LogLevel log_level_;
@@ -304,7 +321,7 @@ private:
      * @param json_config JSON configuration string
      * @return true if parsed successfully, false otherwise
      */
-    bool parseJson(const std::string& json_config);
+    bool parseJson(const Json::Value& json_config);
 };
 
 } // namespace simple_tftpd

@@ -15,6 +15,7 @@
  */
 
 #include "simple_tftpd/tftp_connection.hpp"
+#include "simple_tftpd/tftp_server.hpp"
 #include <iostream>
 #include <filesystem>
 
@@ -32,15 +33,23 @@ TftpConnection::TftpConnection(TftpServer& server,
       logger_(logger),
       state_(TftpConnectionState::INITIALIZED),
       direction_(TftpTransferDirection::READ),
+      bytes_transferred_(0),
       current_block_(0),
       expected_block_(0),
-      bytes_transferred_(0),
-      timeout_(std::chrono::seconds(5)),
-      active_(false) {
-    
-    start_time_ = std::chrono::steady_clock::now();
-    last_activity_ = start_time_;
-}
+      start_time_(std::chrono::steady_clock::now()),
+      last_activity_(start_time_),
+      timeout_(std::chrono::seconds(config ? config->getTimeout() : 5)),
+      active_(false),
+      last_block_sent_(0),
+      last_ack_block_(0),
+      awaiting_ack_(false),
+      awaiting_data_(false),
+      last_block_final_(false),
+      retry_count_(0),
+      ack_retry_count_(0),
+      max_retries_(config ? config->getMaxRetries() : 5),
+      last_packet_time_(start_time_),
+      last_ack_time_(start_time_) {}
 
 TftpConnection::~TftpConnection() {
     stop();
@@ -61,12 +70,13 @@ bool TftpConnection::start() {
 }
 
 void TftpConnection::stop() {
-    if (!active_.load()) {
-        return;
-    }
+    bool was_active = active_.exchange(false);
     
-    active_.store(false);
-    setState(TftpConnectionState::CLOSED, "Connection stopped");
+    if (was_active &&
+        state_ != TftpConnectionState::COMPLETED &&
+        state_ != TftpConnectionState::ERROR) {
+        setState(TftpConnectionState::CLOSED, "Connection stopped");
+    }
     
     // Close files
     closeFiles();
@@ -125,14 +135,24 @@ void TftpConnection::handlePacket(const uint8_t* packet_data,
 }
 
 bool TftpConnection::sendPacket(const TftpPacket& packet) {
-    // Basic packet sending - just log for now
-    logEvent(LogLevel::DEBUG, "Sending " + packet.getTypeString() + " packet");
+    std::vector<uint8_t> packet_data = packet.serialize();
+    
+    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
+        logEvent(LogLevel::ERROR, "Failed to send " + packet.getTypeString() + " packet");
+        return false;
+    }
+    
+    updateActivity();
     return true;
 }
 
 bool TftpConnection::sendError(TftpError error_code, const std::string& error_message) {
     TftpErrorPacket error_packet(error_code, error_message);
-    return sendPacket(error_packet);
+    bool sent = sendPacket(error_packet);
+    setState(TftpConnectionState::ERROR, error_message);
+    active_.store(false);
+    closeFiles();
+    return sent;
 }
 
 void TftpConnection::setTimeout(std::chrono::seconds timeout) {
@@ -149,17 +169,17 @@ void TftpConnection::setCallback(std::function<void(TftpConnectionState, const s
 
 void TftpConnection::workerThread() {
     while (active_.load()) {
-        // Basic worker thread - just sleep for now
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        
-        // Check for timeout
-        if (hasTimedOut()) {
-            logEvent(LogLevel::WARNING, "Connection timed out");
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (!handleTimeoutTick()) {
             break;
         }
     }
     
-    setState(TftpConnectionState::CLOSED, "Worker thread finished");
+    if (state_ != TftpConnectionState::COMPLETED &&
+        state_ != TftpConnectionState::ERROR &&
+        state_ != TftpConnectionState::CLOSED) {
+        setState(TftpConnectionState::CLOSED, "Worker thread finished");
+    }
 }
 
 void TftpConnection::handleReadRequest(const TftpRequestPacket& packet) {
@@ -189,11 +209,15 @@ void TftpConnection::handleReadRequest(const TftpRequestPacket& packet) {
         return;
     }
     
-    // Start sending data
-    current_block_ = 1;
-    setState(TftpConnectionState::SENDING_DATA, "Starting file transfer");
+    // Initialize transfer state
+    current_block_ = 0;
+    awaiting_ack_ = false;
+    last_block_final_ = false;
+    retry_count_ = 0;
+    last_data_block_.clear();
+    setState(TftpConnectionState::TRANSFERRING, "Starting file transfer");
     
-    if (!sendDataBlock(current_block_)) {
+    if (!sendNextDataBlock()) {
         sendError(TftpError::NETWORK_ERROR, "Failed to send data");
         return;
     }
@@ -226,9 +250,14 @@ void TftpConnection::handleWriteRequest(const TftpRequestPacket& packet) {
         return;
     }
     
-    // Send ACK for write request
+    // Prepare to receive data
     current_block_ = 0;
-    setState(TftpConnectionState::RECEIVING_DATA, "Ready to receive file");
+    expected_block_ = 1;
+    awaiting_data_ = true;
+    ack_retry_count_ = 0;
+    last_ack_block_ = 0;
+    last_ack_time_ = std::chrono::steady_clock::now();
+    setState(TftpConnectionState::TRANSFERRING, "Ready to receive file");
     
     if (!sendAcknowledgment(current_block_)) {
         sendError(TftpError::NETWORK_ERROR, "Failed to send ACK");
@@ -247,14 +276,28 @@ void TftpConnection::handleDataPacket(const TftpDataPacket& packet) {
     uint16_t block_number = packet.getBlockNumber();
     const std::vector<uint8_t>& data = packet.getFileData();
     
+    if (block_number <= current_block_) {
+        // Duplicate packet, re-acknowledge last block
+        logEvent(LogLevel::DEBUG, "Duplicate DATA block " + std::to_string(block_number) + ", re-sending ACK");
+        sendAcknowledgment(block_number, false);
+        return;
+    }
+    
     // Check if this is the expected block
-    if (block_number != current_block_ + 1) {
-        logEvent(LogLevel::WARNING, "Unexpected block number: " + std::to_string(block_number) + ", expected: " + std::to_string(current_block_ + 1));
+    if (block_number != expected_block_) {
+        logEvent(LogLevel::WARNING, "Out of order block: " + std::to_string(block_number) +
+                ", expected: " + std::to_string(expected_block_));
+        sendAcknowledgment(current_block_, false);
         return;
     }
     
     // Process data based on transfer mode
     std::vector<uint8_t> processed_data = processDataForMode(data, transfer_mode_, false);
+    
+    if (config_ && (bytes_transferred_ + processed_data.size()) > config_->getMaxFileSize()) {
+        sendError(TftpError::DISK_FULL, "Maximum file size exceeded");
+        return;
+    }
     
     // Write data to file
     if (write_file_.is_open()) {
@@ -267,6 +310,7 @@ void TftpConnection::handleDataPacket(const TftpDataPacket& packet) {
     
     // Update counters
     current_block_ = block_number;
+    expected_block_ = block_number + 1;
     bytes_transferred_ += processed_data.size();
     
     // Send ACK
@@ -277,8 +321,10 @@ void TftpConnection::handleDataPacket(const TftpDataPacket& packet) {
     
     // Check if this is the last block (less than full block size)
     if (data.size() < config_->getBlockSize()) {
+        awaiting_data_ = false;
         setState(TftpConnectionState::COMPLETED, "File transfer completed");
         closeFiles();
+        active_.store(false);
     }
 }
 
@@ -292,17 +338,32 @@ void TftpConnection::handleAckPacket(const TftpAckPacket& packet) {
     
     uint16_t block_number = packet.getBlockNumber();
     
-    // Check if this is the expected ACK
-    if (block_number != current_block_) {
-        logEvent(LogLevel::WARNING, "Unexpected ACK block number: " + std::to_string(block_number) + ", expected: " + std::to_string(current_block_));
+    if (block_number < current_block_) {
+        // Duplicate ACK for already processed block
+        logEvent(LogLevel::DEBUG, "Duplicate ACK for block " + std::to_string(block_number));
         return;
     }
     
-    // Send next data block
-    current_block_++;
-    if (!sendDataBlock(current_block_)) {
-        sendError(TftpError::NETWORK_ERROR, "Failed to send data");
+    if (block_number != last_block_sent_) {
+        logEvent(LogLevel::WARNING, "Unexpected ACK block number: " + std::to_string(block_number) +
+                ", expected: " + std::to_string(last_block_sent_));
         return;
+    }
+    
+    awaiting_ack_ = false;
+    retry_count_ = 0;
+    current_block_ = block_number;
+    last_data_block_.clear();
+    
+    if (last_block_final_ && block_number == last_block_sent_) {
+        setState(TftpConnectionState::COMPLETED, "File transfer completed");
+        closeFiles();
+        active_.store(false);
+        return;
+    }
+    
+    if (!sendNextDataBlock()) {
+        sendError(TftpError::NETWORK_ERROR, "Failed to send data");
     }
 }
 
@@ -329,60 +390,146 @@ bool TftpConnection::processWriteRequest(const TftpRequestPacket& packet) {
     return true;
 }
 
-bool TftpConnection::sendDataBlock(uint16_t block_number) {
-    if (!read_file_.is_open()) {
+bool TftpConnection::handleTimeoutTick() {
+    auto now = std::chrono::steady_clock::now();
+    
+    if (hasTimedOut()) {
+        logEvent(LogLevel::WARNING, "Connection idle timeout reached");
+        handleTimeout();
         return false;
     }
     
-    // Read data from file
-    std::vector<uint8_t> buffer(config_->getBlockSize());
-    read_file_.read(reinterpret_cast<char*>(buffer.data()), config_->getBlockSize());
-    std::streamsize bytes_read = read_file_.gcount();
-    
-    if (bytes_read < 0) {
-        logEvent(LogLevel::ERROR, "Failed to read from file");
-        return false;
+    if (awaiting_ack_) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_packet_time_);
+        if (elapsed >= timeout_) {
+            if (retry_count_ >= max_retries_) {
+                logEvent(LogLevel::ERROR, "Retry limit reached while waiting for ACK");
+                sendError(TftpError::TIMEOUT, "Retry limit exceeded");
+                active_.store(false);
+                setState(TftpConnectionState::ERROR, "Retry limit exceeded");
+                return false;
+            }
+            
+            ++retry_count_;
+            if (!resendLastDataBlock()) {
+                return false;
+            }
+        }
     }
     
-    // Resize buffer to actual bytes read
-    buffer.resize(static_cast<size_t>(bytes_read));
-    
-    // Process data based on transfer mode
-    std::vector<uint8_t> processed_data = processDataForMode(buffer, transfer_mode_, true);
-    
-    // Create and send data packet
-    TftpDataPacket data_packet(block_number, processed_data);
-    std::vector<uint8_t> packet_data = data_packet.serialize();
-    
-    // Send packet via server
-    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
-        logEvent(LogLevel::ERROR, "Failed to send data packet");
-        return false;
-    }
-    
-    bytes_transferred_ += processed_data.size();
-    updateActivity();
-    
-    // Check if this is the last block
-    if (bytes_read < static_cast<std::streamsize>(config_->getBlockSize())) {
-        setState(TftpConnectionState::COMPLETED, "File transfer completed");
-        closeFiles();
+    if (direction_ == TftpTransferDirection::WRITE && awaiting_data_) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_ack_time_);
+        if (elapsed >= timeout_) {
+            if (ack_retry_count_ >= max_retries_) {
+                logEvent(LogLevel::ERROR, "Retry limit reached while waiting for DATA");
+                sendError(TftpError::TIMEOUT, "Client did not continue transfer");
+                active_.store(false);
+                setState(TftpConnectionState::ERROR, "Client stalled");
+                return false;
+            }
+            
+            ++ack_retry_count_;
+            logEvent(LogLevel::WARNING, "Resending ACK for block " + std::to_string(last_ack_block_));
+            if (!sendAcknowledgment(last_ack_block_, false)) {
+                return false;
+            }
+        }
     }
     
     return true;
 }
 
-bool TftpConnection::sendAcknowledgment(uint16_t block_number) {
-    // Create and send ACK packet
+bool TftpConnection::sendDataBlock(uint16_t block_number, bool is_retry) {
+    if (!config_) {
+        return false;
+    }
+    
+    std::vector<uint8_t> payload;
+    bool is_final_block = false;
+    
+    if (is_retry) {
+        if (last_data_block_.empty() && !last_block_final_) {
+            logEvent(LogLevel::ERROR, "No previous block available for retry");
+            return false;
+        }
+        payload = last_data_block_;
+        is_final_block = last_block_final_;
+    } else {
+        if (!read_file_.is_open()) {
+            return false;
+        }
+        
+        std::vector<uint8_t> buffer(config_->getBlockSize());
+        read_file_.read(reinterpret_cast<char*>(buffer.data()), config_->getBlockSize());
+        std::streamsize bytes_read = read_file_.gcount();
+        
+        if (bytes_read < 0) {
+            logEvent(LogLevel::ERROR, "Failed to read from file");
+            return false;
+        }
+        
+        buffer.resize(static_cast<size_t>(bytes_read));
+        payload = processDataForMode(buffer, transfer_mode_, true);
+        last_data_block_ = payload;
+        last_block_final_ = bytes_read < static_cast<std::streamsize>(config_->getBlockSize());
+        last_block_sent_ = block_number;
+        retry_count_ = 0;
+        is_final_block = last_block_final_;
+        bytes_transferred_ += payload.size();
+    }
+    
+    TftpDataPacket data_packet(block_number, payload);
+    std::vector<uint8_t> packet_data = data_packet.serialize();
+    
+    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
+        logEvent(LogLevel::ERROR, "Failed to send data packet");
+        return false;
+    }
+    
+    awaiting_ack_ = true;
+    last_packet_time_ = std::chrono::steady_clock::now();
+    updateActivity();
+    
+    if (!is_retry) {
+        last_block_sent_ = block_number;
+        if (is_final_block) {
+            // Wait for final ACK to mark completion
+            logEvent(LogLevel::DEBUG, "Final block " + std::to_string(block_number) + " sent, awaiting ACK");
+        }
+    }
+    
+    return true;
+}
+
+bool TftpConnection::sendNextDataBlock() {
+    return sendDataBlock(static_cast<uint16_t>(current_block_ + 1), false);
+}
+
+bool TftpConnection::resendLastDataBlock() {
+    if (last_block_sent_ == 0) {
+        return false;
+    }
+    logEvent(LogLevel::WARNING, "Retrying DATA block " + std::to_string(last_block_sent_) +
+            " (attempt " + std::to_string(retry_count_) + "/" + std::to_string(max_retries_) + ")");
+    return sendDataBlock(last_block_sent_, true);
+}
+
+bool TftpConnection::sendAcknowledgment(uint16_t block_number, bool track_state) {
     TftpAckPacket ack_packet(block_number);
     std::vector<uint8_t> packet_data = ack_packet.serialize();
     
-    // Send packet via server
     if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
         logEvent(LogLevel::ERROR, "Failed to send ACK packet");
         return false;
     }
     
+    if (track_state) {
+        last_ack_block_ = block_number;
+        ack_retry_count_ = 0;
+    }
+    
+    awaiting_data_ = true;
+    last_ack_time_ = std::chrono::steady_clock::now();
     updateActivity();
     return true;
 }
@@ -623,22 +770,6 @@ std::vector<uint8_t> TftpConnection::processDataForMode(const std::vector<uint8_
     return result;
 }
 
-bool TftpConnection::sendError(TftpError error_code, const std::string& error_message) {
-    // Create and send error packet
-    TftpErrorPacket error_packet(error_code, error_message);
-    std::vector<uint8_t> packet_data = error_packet.serialize();
-    
-    // Send packet via server
-    if (!server_.sendPacket(packet_data.data(), packet_data.size(), client_addr_, client_port_)) {
-        logEvent(LogLevel::ERROR, "Failed to send error packet");
-        return false;
-    }
-    
-    setState(TftpConnectionState::ERROR, error_message);
-    updateActivity();
-    return true;
-}
-
 bool TftpConnection::sendOptionAck(const TftpOptions& options) {
     // Create OACK packet (Option Acknowledgment)
     std::vector<uint8_t> packet_data;
@@ -647,29 +778,31 @@ bool TftpConnection::sendOptionAck(const TftpOptions& options) {
     packet_data.push_back(0);
     packet_data.push_back(6);
     
+    auto appendString = [&packet_data](const std::string& value) {
+        packet_data.insert(packet_data.end(), value.begin(), value.end());
+    };
+    
+    auto appendOption = [&](const std::string& key, const std::string& value) {
+        appendString(key);
+        packet_data.push_back(0);
+        appendString(value);
+        packet_data.push_back(0);
+    };
+    
     // Add options
     if (options.blksize != 512) {
         std::string blksize_str = std::to_string(options.blksize);
-        packet_data.insert(packet_data.end(), "blksize", "blksize" + 7);
-        packet_data.push_back(0);
-        packet_data.insert(packet_data.end(), blksize_str.begin(), blksize_str.end());
-        packet_data.push_back(0);
+        appendOption("blksize", blksize_str);
     }
     
     if (options.timeout != 5) {
         std::string timeout_str = std::to_string(options.timeout);
-        packet_data.insert(packet_data.end(), "timeout", "timeout" + 7);
-        packet_data.push_back(0);
-        packet_data.insert(packet_data.end(), timeout_str.begin(), timeout_str.end());
-        packet_data.push_back(0);
+        appendOption("timeout", timeout_str);
     }
     
     if (options.tsize != 0) {
         std::string tsize_str = std::to_string(options.tsize);
-        packet_data.insert(packet_data.end(), "tsize", "tsize" + 5);
-        packet_data.push_back(0);
-        packet_data.insert(packet_data.end(), tsize_str.begin(), tsize_str.end());
-        packet_data.push_back(0);
+        appendOption("tsize", tsize_str);
     }
     
     // Send packet via server
@@ -686,6 +819,8 @@ bool TftpConnection::handleTimeout() {
     logEvent(LogLevel::WARNING, "Connection timeout");
     sendError(TftpError::TIMEOUT, "Connection timeout");
     setState(TftpConnectionState::ERROR, "Connection timeout");
+    active_.store(false);
+    closeFiles();
     return false;
 }
 
