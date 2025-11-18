@@ -282,36 +282,31 @@ bool TftpRequestPacket::parseOptions(const uint8_t* data, size_t offset, size_t 
 }
 
 void TftpRequestPacket::serializeOptions(std::vector<uint8_t>& data) const {
+    auto appendString = [&data](const std::string& value) {
+        data.insert(data.end(), value.begin(), value.end());
+    };
+    
+    auto appendOption = [&](const std::string& key, const std::string& value) {
+        appendString(key);
+        data.push_back(0);
+        appendString(value);
+        data.push_back(0);
+    };
+    
     if (options_.has_blksize) {
-        std::string blksize_str = std::to_string(options_.blksize);
-        data.insert(data.end(), "blksize", "blksize" + 7);
-        data.push_back(0);
-        data.insert(data.end(), blksize_str.begin(), blksize_str.end());
-        data.push_back(0);
+        appendOption("blksize", std::to_string(options_.blksize));
     }
     
     if (options_.has_timeout) {
-        std::string timeout_str = std::to_string(options_.timeout);
-        data.insert(data.end(), "timeout", "timeout" + 7);
-        data.push_back(0);
-        data.insert(data.end(), timeout_str.begin(), timeout_str.end());
-        data.push_back(0);
+        appendOption("timeout", std::to_string(options_.timeout));
     }
     
     if (options_.has_tsize) {
-        std::string tsize_str = std::to_string(options_.tsize);
-        data.insert(data.end(), "tsize", "tsize" + 5);
-        data.push_back(0);
-        data.insert(data.end(), tsize_str.begin(), tsize_str.end());
-        data.push_back(0);
+        appendOption("tsize", std::to_string(options_.tsize));
     }
     
     if (options_.has_windowsize) {
-        std::string windowsize_str = std::to_string(options_.windowsize);
-        data.insert(data.end(), "windowsize", "windowsize" + 10);
-        data.push_back(0);
-        data.insert(data.end(), windowsize_str.begin(), windowsize_str.end());
-        data.push_back(0);
+        appendOption("windowsize", std::to_string(options_.windowsize));
     }
 }
 
