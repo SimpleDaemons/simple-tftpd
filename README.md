@@ -1,18 +1,34 @@
 # Simple TFTP Daemon
 
-A lightweight, cross-platform TFTP (Trivial File Transfer Protocol) daemon written in C++.
+**Version**: v0.2.0-alpha | **Status**: Core protocol complete, integration testing in progress
+
+A lightweight, cross-platform TFTP (Trivial File Transfer Protocol) daemon written in C++17. Implements RFC 1350 with full support for TFTP options (RFC 2347), windowed transfers, and comprehensive security features.
 
 ## Features
 
-- **Cross-platform**: Supports Linux, macOS, and Windows
-- **RFC Compliant**: Implements TFTP protocol according to RFC 1350
-- **Modern C++**: Built with C++17 standard
-- **Configurable**: JSON-based configuration with command-line overrides
-- **Secure**: Configurable access controls and file restrictions
-- **Logging**: Comprehensive logging with configurable levels
+### Core Protocol ✅
+- **RFC 1350 Compliant**: Full TFTP protocol implementation
+- **TFTP Options (RFC 2347)**: blksize, timeout, tsize, windowsize negotiation
+- **Windowed Transfers**: Sliding window with configurable window size
+- **Retransmission**: Automatic retry with configurable max retries and timeout handling
+- **Transfer Modes**: netascii, octet, and mail mode support
+
+### Security ✅
+- **Access Control**: Directory allowlists and path traversal protection
+- **File Filtering**: Extension allowlists and file size limits
+- **Client Filtering**: IP address allowlists
+- **Permission Control**: Configurable read/write permissions
+
+### Configuration ✅
+- **JSON Configuration**: Full configuration file support with validation
+- **Configuration Serialization**: Save and export configuration
+- **Command-line Overrides**: Runtime configuration options
+
+### Platform Support ✅
+- **Cross-platform**: Linux, macOS, and Windows
 - **IPv6 Support**: Optional IPv6 support
-- **Performance**: Configurable block sizes and timeouts
-- **Statistics**: Built-in connection and transfer statistics
+- **Modern C++**: Built with C++17 standard
+- **Logging**: Comprehensive logging with configurable levels
 
 ## License
 
@@ -235,12 +251,42 @@ simple-tftpd/
 
 ## Testing
 
-Run the test suite:
+### Unit Tests
+
+Run the unit test suite:
+
+```bash
+cd build
+make simple-tftpd-tests
+./bin/simple-tftpd-tests
+```
+
+### Integration Tests
+
+Run the integration test suite (requires server to be built):
+
+```bash
+cd build
+make simple-tftpd-integration-tests
+./bin/simple-tftpd-integration-tests
+```
+
+### All Tests
+
+Run all tests via CMake:
 
 ```bash
 cd build
 make test
 ```
+
+The integration tests cover:
+- Basic read/write transfers
+- Option negotiation (blksize, timeout, tsize, windowsize)
+- Windowed transfers
+- Security features (extension filtering, client allowlists)
+- Error handling
+- Transfer modes (netascii, octet, mail)
 
 ## Troubleshooting
 
@@ -261,10 +307,19 @@ Enable debug logging for troubleshooting:
 
 ## Roadmap
 
-- [x] TFTP options support (blksize, timeout, tsize, windowsize) ✅ **Complete**
-- [x] Windowed transfers with retransmission ✅ **Complete**
-- [x] JSON configuration serialization ✅ **Complete**
-- [x] File extension and client address filtering ✅ **Complete**
+### ✅ Completed (v0.2.0-alpha)
+- [x] TFTP options support (blksize, timeout, tsize, windowsize)
+- [x] Windowed transfers with retransmission
+- [x] JSON configuration serialization
+- [x] File extension and client address filtering
+- [x] Integration test suite
+
+### 🚧 In Progress (v0.2.0-beta)
+- [ ] Configuration hot-reload
+- [ ] Enhanced test coverage (target: 80%+)
+- [ ] Performance benchmarks
+
+### 📋 Planned (v0.3.0+)
 - [ ] Multicast TFTP support
 - [ ] Authentication and authorization
 - [ ] SSL/TLS support
@@ -272,8 +327,6 @@ Enable debug logging for troubleshooting:
 - [ ] SNMP monitoring
 - [ ] Rate limiting
 - [ ] Advanced logging (syslog, structured logging)
-- [ ] Configuration hot-reload
-- [ ] Integration test suite
 
 ## Support
 
