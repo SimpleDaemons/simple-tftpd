@@ -261,7 +261,10 @@ Enable debug logging for troubleshooting:
 
 ## Roadmap
 
-- [ ] TFTP options support (blksize, timeout, tsize, windowsize)
+- [x] TFTP options support (blksize, timeout, tsize, windowsize) ✅ **Complete**
+- [x] Windowed transfers with retransmission ✅ **Complete**
+- [x] JSON configuration serialization ✅ **Complete**
+- [x] File extension and client address filtering ✅ **Complete**
 - [ ] Multicast TFTP support
 - [ ] Authentication and authorization
 - [ ] SSL/TLS support
@@ -269,6 +272,8 @@ Enable debug logging for troubleshooting:
 - [ ] SNMP monitoring
 - [ ] Rate limiting
 - [ ] Advanced logging (syslog, structured logging)
+- [ ] Configuration hot-reload
+- [ ] Integration test suite
 
 ## Support
 

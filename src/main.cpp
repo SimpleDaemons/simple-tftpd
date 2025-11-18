@@ -87,7 +87,7 @@ void printUsage() {
  * @brief Print version information
  */
 void printVersion() {
-    std::cout << "simple-tftpd v0.1.0" << std::endl;
+    std::cout << "simple-tftpd v0.2.0-alpha" << std::endl;
     std::cout << "Simple TFTP Daemon for Linux, macOS, and Windows" << std::endl;
     std::cout << "Copyright (c) 2024 SimpleDaemons" << std::endl;
     std::cout << "Licensed under Apache License 2.0" << std::endl;
@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
             config->isConsoleLoggingEnabled()
         );
         
-        g_logger->info("Starting simple-tftpd v0.1.0");
+        g_logger->info("Starting simple-tftpd v0.2.0-alpha");
         g_logger->info("Configuration loaded successfully");
         
         // Initialize signal handlers
