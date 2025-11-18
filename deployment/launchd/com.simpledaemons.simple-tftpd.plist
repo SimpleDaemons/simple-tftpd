@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.simple-tftpd.simple-tftpd</string>
+    <string>com.simpledaemons.simple-tftpd</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/simple-tftpd</string>
@@ -18,3 +18,4 @@
     <string>/var/log/simple-tftpd.error.log</string>
 </dict>
 </plist>
+

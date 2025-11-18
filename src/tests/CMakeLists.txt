@@ -21,14 +21,14 @@ endif()
 if(GTest_FOUND)
     message(STATUS "Found Google Test: ${GTEST_LIBRARIES}")
     
-    # Test source files
-    set(TEST_SOURCES
+    # Unit test source files
+    set(UNIT_TEST_SOURCES
         test_main.cpp
         utils/test_helpers.cpp
     )
     
-    # Test executable
-    add_executable(simple-tftpd-tests ${TEST_SOURCES})
+    # Unit test executable
+    add_executable(simple-tftpd-tests ${UNIT_TEST_SOURCES})
     
     # Link against the core library
     target_link_libraries(simple-tftpd-tests 
@@ -44,15 +44,54 @@ if(GTest_FOUND)
     # Include directories
     target_include_directories(simple-tftpd-tests PRIVATE
         ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${GTEST_INCLUDE_DIRS}
     )
     
-    # Add tests
-    add_test(NAME simple-tftpd-tests COMMAND simple-tftpd-tests)
+    # Add unit tests
+    add_test(NAME simple-tftpd-unit-tests COMMAND simple-tftpd-tests)
     
     # Set test properties
-    set_tests_properties(simple-tftpd-tests PROPERTIES
+    set_tests_properties(simple-tftpd-unit-tests PROPERTIES
         TIMEOUT 300
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+    
+    # Integration test source files
+    set(INTEGRATION_TEST_SOURCES
+        integration/integration_tests.cpp
+        integration/tftp_client.cpp
+        utils/test_helpers.cpp
+    )
+    
+    # Integration test executable
+    add_executable(simple-tftpd-integration-tests ${INTEGRATION_TEST_SOURCES})
+    
+    # Link against the core library
+    target_link_libraries(simple-tftpd-integration-tests 
+        simple-tftpd-core
+        ${GTEST_LIBRARIES}
+        ${PLATFORM_LIBRARIES}
+    )
+    
+    if(JSONCPP_FOUND)
+        target_link_libraries(simple-tftpd-integration-tests ${JSONCPP_LIBRARIES})
+    endif()
+    
+    # Include directories for integration tests
+    target_include_directories(simple-tftpd-integration-tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/integration
+        ${GTEST_INCLUDE_DIRS}
+    )
+    
+    # Add integration tests
+    add_test(NAME simple-tftpd-integration-tests COMMAND simple-tftpd-integration-tests)
+    
+    # Set test properties
+    set_tests_properties(simple-tftpd-integration-tests PROPERTIES
+        TIMEOUT 600
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
     
