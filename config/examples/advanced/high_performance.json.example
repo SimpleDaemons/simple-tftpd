@@ -1,0 +1,33 @@
+{
+    "network": {
+        "listen_address": "0.0.0.0",
+        "listen_port": 69,
+        "ipv6_enabled": true
+    },
+    "filesystem": {
+        "root_directory": "/var/tftp",
+        "allowed_directories": [
+            "/var/tftp/public",
+            "/var/tftp/fast",
+            "/var/tftp/cache"
+        ]
+    },
+    "security": {
+        "read_enabled": true,
+        "write_enabled": true,
+        "max_file_size": 1073741824,
+        "overwrite_protection": false
+    },
+    "performance": {
+        "block_size": 8192,
+        "timeout": 3,
+        "window_size": 16,
+        "max_retries": 5
+    },
+    "logging": {
+        "level": "WARNING",
+        "log_file": "/var/log/simple-tftpd-perf.log",
+        "console_logging": false
+    }
+}
+

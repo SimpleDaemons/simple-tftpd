@@ -1,0 +1,48 @@
+# Enterprise Production TFTP Server Configuration (YAML Format)
+# Production-ready configuration for enterprise environments
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+network:
+  listen_address: "0.0.0.0"
+  listen_port: 69
+  ipv6_enabled: true
+
+filesystem:
+  root_directory: "/var/tftp"
+  allowed_directories:
+    - "/var/tftp/public"
+    - "/var/tftp/firmware"
+    - "/var/tftp/updates"
+    - "/var/tftp/releases"
+
+security:
+  read_enabled: true
+  write_enabled: false
+  max_file_size: 1073741824
+  overwrite_protection: true
+  allowed_extensions:
+    - "bin"
+    - "img"
+    - "iso"
+    - "tar"
+    - "gz"
+    - "zip"
+    - "cfg"
+    - "txt"
+  allowed_clients:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+
+performance:
+  block_size: 4096
+  timeout: 5
+  window_size: 8
+  max_retries: 5
+
+logging:
+  level: "INFO"
+  log_file: "/var/log/simple-tftpd/access.log"
+  console_logging: false
+

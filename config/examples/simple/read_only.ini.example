@@ -1,0 +1,32 @@
+# Read-Only TFTP Server Configuration (INI Format)
+# Secure configuration for read-only file serving
+# Copyright 2024 SimpleDaemons
+# Licensed under Apache License 2.0
+
+[network]
+listen_address = 0.0.0.0
+listen_port = 69
+ipv6_enabled = true
+
+[filesystem]
+root_directory = /var/tftp
+allowed_directories = /var/tftp/public, /var/tftp/firmware, /var/tftp/iso
+
+[security]
+read_enabled = true
+write_enabled = false
+max_file_size = 104857600
+overwrite_protection = true
+allowed_extensions = bin, img, iso, tar, gz
+
+[performance]
+block_size = 512
+timeout = 5
+window_size = 1
+max_retries = 5
+
+[logging]
+level = INFO
+log_file = /var/log/simple-tftpd.log
+console_logging = false
+
