@@ -1,11 +1,7 @@
-# Basic TFTP Server Configuration (YAML Format)
-# Minimal configuration for basic TFTP server
+# Read-Only TFTP Server Configuration (YAML Format)
+# Secure configuration for read-only file serving
 # Copyright 2024 SimpleDaemons
 # Licensed under Apache License 2.0
-#
-# Note: YAML format support is planned for future releases
-# This example shows the equivalent YAML structure
-# for the JSON configuration format
 
 network:
   listen_address: "0.0.0.0"
@@ -14,13 +10,22 @@ network:
 
 filesystem:
   root_directory: "/var/tftp"
-  allowed_directories: []
+  allowed_directories:
+    - "/var/tftp/public"
+    - "/var/tftp/firmware"
+    - "/var/tftp/iso"
 
 security:
   read_enabled: true
   write_enabled: false
   max_file_size: 104857600
   overwrite_protection: true
+  allowed_extensions:
+    - "bin"
+    - "img"
+    - "iso"
+    - "tar"
+    - "gz"
 
 performance:
   block_size: 512
@@ -31,4 +36,5 @@ performance:
 logging:
   level: "INFO"
   log_file: "/var/log/simple-tftpd.log"
-  console_logging: true
+  console_logging: false
+
