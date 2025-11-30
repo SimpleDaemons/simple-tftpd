@@ -16,10 +16,10 @@
 
 #pragma once
 
-#include "simple_tftpd/platform.hpp"
-#include "simple_tftpd/tftp_packet.hpp"
-#include "simple_tftpd/tftp_config.hpp"
-#include "simple_tftpd/logger.hpp"
+#include "simple-tftpd/utils/platform.hpp"
+#include "simple-tftpd/core/packet.hpp"
+#include "simple-tftpd/config/config.hpp"
+#include "simple-tftpd/utils/logger.hpp"
 #include <memory>
 #include <string>
 #include <thread>

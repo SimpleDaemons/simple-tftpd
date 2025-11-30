@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "simple_tftpd/tftp_connection.hpp"
-#include "simple_tftpd/tftp_server.hpp"
+#include "simple-tftpd/core/connection.hpp"
+#include "simple-tftpd/core/server.hpp"
 #include <iostream>
 #include <filesystem>
 #include <algorithm>

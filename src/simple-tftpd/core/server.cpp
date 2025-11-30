@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simple_tftpd/tftp_server.hpp"
+#include "simple-tftpd/core/server.hpp"
 #include <iostream>
 #include <sstream>
 #include <cstring>
@@ -29,7 +29,8 @@ TftpServer::TftpServer(std::shared_ptr<TftpConfig> config, std::shared_ptr<Logge
       server_socket_(INVALID_SOCKET_VALUE),
       listen_address_(config->getListenAddress()),
       listen_port_(config->getListenPort()),
-      ipv6_enabled_(config->isIpv6Enabled()) {
+      ipv6_enabled_(config->isIpv6Enabled()),
+      config_file_path_("") {
     
     stats_.start_time = std::chrono::steady_clock::now();
 }
@@ -144,9 +145,67 @@ std::shared_ptr<Logger> TftpServer::getLogger() const {
     return logger_;
 }
 
-bool TftpServer::reloadConfig() {
-    logEvent(LogLevel::INFO, "Reloading configuration");
-    // Basic implementation - just log for now
+void TftpServer::setConfigFile(const std::string& config_file) {
+    config_file_path_ = config_file;
+}
+
+bool TftpServer::reloadConfig(const std::string& config_file) {
+    std::string file_to_load = config_file.empty() ? config_file_path_ : config_file;
+    
+    if (file_to_load.empty()) {
+        logEvent(LogLevel::WARNING, "No configuration file path set for reload");
+        return false;
+    }
+    
+    logEvent(LogLevel::INFO, "Reloading configuration from: " + file_to_load);
+    
+    // Create a new config object and load from file
+    auto new_config = std::make_shared<TftpConfig>();
+    if (!new_config->loadFromFile(file_to_load)) {
+        logEvent(LogLevel::ERROR, "Failed to reload configuration from: " + file_to_load);
+        return false;
+    }
+    
+    // Store old log file for comparison before replacing config
+    std::string old_log_file = config_->getLogFile();
+    
+    // Validate critical settings that can't change while running
+    if (new_config->getListenAddress() != listen_address_ ||
+        new_config->getListenPort() != listen_port_ ||
+        new_config->isIpv6Enabled() != ipv6_enabled_) {
+        logEvent(LogLevel::WARNING, "Network settings changed but cannot be applied without restart");
+        logEvent(LogLevel::WARNING, "Please restart the server to apply network configuration changes");
+    }
+    
+    // Update config (thread-safe)
+    {
+        std::lock_guard<std::mutex> lock(connections_mutex_);
+        config_ = new_config;
+        
+        // Update active connections with new config values
+        for (auto& pair : connections_) {
+            auto connection = pair.second;
+            if (connection && connection->isActive()) {
+                // Update connection with new config (connections will use new config for new transfers)
+                // Note: Existing transfers continue with their original config
+            }
+        }
+    }
+    
+    // Update logger settings if they changed
+    if (logger_) {
+        logger_->setLevel(new_config->getLogLevel());
+        logger_->setConsoleOutput(new_config->isConsoleLoggingEnabled());
+        if (!new_config->getLogFile().empty()) {
+            // Note: Changing log file would require recreating logger
+            // For now, just log a warning
+            if (new_config->getLogFile() != old_log_file) {
+                logEvent(LogLevel::INFO, "Log file setting changed (requires restart to take effect)");
+            }
+        }
+    }
+    
+    logEvent(LogLevel::INFO, "Configuration reloaded successfully");
     return true;
 }
 

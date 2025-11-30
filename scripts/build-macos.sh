@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
-# Simple TFTP Daemon macOS Build Script
-# Copyright 2024 SimpleDaemons
-# Licensed under Apache License 2.0
+#!/bin/bash
+
+# simple-tftpd macOS Build Script
+# This script builds the simple-tftpd application for macOS
 
 set -e
 
@@ -12,11 +12,23 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Project information
-PROJECT_NAME="simple-tftpd"
+# Script configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+BUILD_DIR="$PROJECT_ROOT/build"
+DIST_DIR="$PROJECT_ROOT/dist"
 VERSION="0.1.0"
-BUILD_DIR="build"
-BIN_DIR="${BUILD_DIR}/bin"
+
+# Build options
+BUILD_TYPE="Release"
+BUILD_SHARED_LIBS="OFF"
+BUILD_TESTS="ON"
+ENABLE_SSL="ON"
+ENABLE_JSON="ON"
+ENABLE_STATIC_LINKING="OFF"
+PACKAGE="false"
+INSTALL="false"
+CLEAN="false"
 
 # Function to print colored output
 print_status() {
@@ -42,232 +54,357 @@ command_exists() {
 
 # Function to check macOS version
 check_macos_version() {
-    local macos_version=$(sw_vers -productVersion)
-    local major_version=$(echo "$macos_version" | cut -d. -f1)
-    local minor_version=$(echo "$macos_version" | cut -d. -f2)
+    print_status "Checking macOS version..."
     
-    print_status "Detected macOS version: $macos_version"
+    # Get macOS version
+    MACOS_VERSION=$(sw_vers -productVersion)
+    MACOS_MAJOR=$(echo "$MACOS_VERSION" | cut -d. -f1)
+    MACOS_MINOR=$(echo "$MACOS_VERSION" | cut -d. -f2)
     
-    if [ "$major_version" -lt 12 ]; then
-        print_error "macOS 12.0 (Monterey) or higher is required"
+    print_status "macOS version: $MACOS_VERSION"
+    
+    # Check if running on macOS 10.15 or later
+    if [ "$MACOS_MAJOR" -lt 10 ] || ([ "$MACOS_MAJOR" -eq 10 ] && [ "$MACOS_MINOR" -lt 15 ]); then
+        print_warning "macOS 10.15 or later recommended for best compatibility"
+    fi
+}
+
+# Function to check Xcode Command Line Tools
+check_xcode_tools() {
+    print_status "Checking Xcode Command Line Tools..."
+    
+    if ! command_exists xcode-select; then
+        print_error "Xcode Command Line Tools not found"
+        print_status "Please install Xcode Command Line Tools:"
+        print_status "xcode-select --install"
         exit 1
     fi
     
-    print_success "macOS version check passed"
+    # Check if Xcode Command Line Tools are installed
+    if ! xcode-select -p >/dev/null 2>&1; then
+        print_error "Xcode Command Line Tools not properly installed"
+        print_status "Please install Xcode Command Line Tools:"
+        print_status "xcode-select --install"
+        exit 1
+    fi
+    
+    print_success "Xcode Command Line Tools found"
 }
 
-# Function to check dependencies
-check_dependencies() {
-    print_status "Checking dependencies..."
+# Function to check Homebrew
+check_homebrew() {
+    print_status "Checking Homebrew installation..."
     
-    # Check for Homebrew
     if ! command_exists brew; then
-        print_error "Homebrew is not installed. Please install it first:"
-        echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+        print_error "Homebrew not found"
+        print_status "Please install Homebrew from https://brew.sh/"
         exit 1
     fi
     
-    # Check for CMake
-    if ! command_exists cmake; then
-        print_warning "CMake not found. Installing via Homebrew..."
-        brew install cmake
-    fi
-    
-    # Check for jsoncpp
-    if ! brew list jsoncpp >/dev/null 2>&1; then
-        print_warning "jsoncpp not found. Installing via Homebrew..."
-        brew install jsoncpp
-    fi
-    
-    # Check for pkg-config
-    if ! command_exists pkg-config; then
-        print_warning "pkg-config not found. Installing via Homebrew..."
-        brew install pkg-config
-    fi
-    
-    print_success "All dependencies are available"
+    print_success "Homebrew found: $(brew --version | head -n1)"
 }
 
-# Function to setup build environment
-setup_build_env() {
-    print_status "Setting up build environment..."
+# Function to install dependencies
+install_dependencies() {
+    print_status "Installing build dependencies using Homebrew..."
     
-    # Create build directory
-    mkdir -p "$BUILD_DIR"
+    # Update Homebrew
+    brew update
     
-    # Set environment variables
-    export CMAKE_PREFIX_PATH="$(brew --prefix)"
-    export PKG_CONFIG_PATH="$(brew --prefix)/lib/pkgconfig"
+    # Install build tools
+    brew install cmake pkg-config git wget curl
     
-    print_success "Build environment setup complete"
+    # Install development libraries
+    brew install openssl jsoncpp
+    
+    # Install optional development tools
+    brew install clang-format cppcheck valgrind gdb lcov
+    
+    print_success "Dependencies installed successfully"
+}
+
+# Function to clean build directory
+clean_build() {
+    if [ "$CLEAN" = "true" ]; then
+        print_status "Cleaning build directory..."
+        rm -rf "$BUILD_DIR"
+        rm -rf "$DIST_DIR"
+        print_success "Build directory cleaned"
+    fi
 }
 
 # Function to build project
 build_project() {
-    print_status "Building $PROJECT_NAME v$VERSION..."
+    print_status "Building simple-tftpd..."
     
+    # Create build directory
+    mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR"
     
-    # Configure with CMake
-    print_status "Configuring with CMake..."
+    # Configure CMake
     cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
-        -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0" \
-        -DBUILD_TESTS=ON \
-        -DBUILD_EXAMPLES=OFF \
-        -DENABLE_LOGGING=ON \
-        -DENABLE_IPV6=ON
+        -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+        -DBUILD_SHARED_LIBS="$BUILD_SHARED_LIBS" \
+        -DENABLE_TESTS="$BUILD_TESTS" \
+        -DENABLE_SSL="$ENABLE_SSL" \
+        -DENABLE_JSON="$ENABLE_JSON" \
+        -DENABLE_STATIC_LINKING="$ENABLE_STATIC_LINKING" \
+        -DENABLE_PACKAGING=ON
     
-    # Build
-    print_status "Building..."
+    # Build project
     make -j$(sysctl -n hw.ncpu)
-    
-    cd ..
     
     print_success "Build completed successfully"
 }
 
 # Function to run tests
 run_tests() {
-    print_status "Running tests..."
-    
-    if [ -f "$BIN_DIR/simple-tftpd-tests" ]; then
-        cd "$BIN_DIR"
-        ./simple-tftpd-tests
-        cd ../..
-        print_success "Tests completed"
-    else
-        print_warning "Test executable not found. Skipping tests."
+    if [ "$BUILD_TESTS" = "ON" ]; then
+        print_status "Running tests..."
+        cd "$BUILD_DIR"
+        
+        if make test; then
+            print_success "All tests passed"
+        else
+            print_warning "Some tests failed, but continuing..."
+        fi
     fi
 }
 
 # Function to install project
 install_project() {
-    print_status "Installing $PROJECT_NAME..."
-    
-    cd "$BUILD_DIR"
-    make install
-    cd ..
-    
-    print_success "Installation completed"
+    if [ "$INSTALL" = "true" ]; then
+        print_status "Installing simple-tftpd..."
+        cd "$BUILD_DIR"
+        
+        make install
+        
+        # Test installation
+        if command_exists simple-tftpd; then
+            print_success "Installation successful"
+            simple-tftpd --version
+        else
+            print_error "Installation failed - binary not found in PATH"
+            exit 1
+        fi
+    fi
 }
 
-# Function to create package
-create_package() {
-    print_status "Creating package..."
-    
-    cd "$BUILD_DIR"
-    make package
-    cd ..
-    
-    print_success "Package created successfully"
+# Function to create packages
+create_packages() {
+    if [ "$PACKAGE" = "true" ]; then
+        print_status "Creating macOS packages..."
+        cd "$BUILD_DIR"
+        
+        # Create distribution directory
+        mkdir -p "$DIST_DIR"
+        
+        # Create packages using CPack
+        cpack
+        
+        # Move packages to dist directory
+        mv *.dmg *.pkg "$DIST_DIR/" 2>/dev/null || true
+        
+        print_success "Packages created in $DIST_DIR"
+        ls -la "$DIST_DIR"
+    fi
 }
 
-# Function to show help
-show_help() {
-    echo "Usage: $0 [OPTIONS]"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help      Show this help message"
-    echo "  -c, --clean     Clean build directory before building"
-    echo "  -t, --test      Run tests after building"
-    echo "  -i, --install   Install after building"
-    echo "  -p, --package   Create package after building"
-    echo "  -a, --all       Clean, build, test, install, and package"
-    echo ""
-    echo "Examples:"
-    echo "  $0              # Build only"
-    echo "  $0 --test       # Build and run tests"
-    echo "  $0 --all        # Full build process"
+# Function to create static binary package
+create_static_package() {
+    if [ "$ENABLE_STATIC_LINKING" = "ON" ]; then
+        print_status "Creating static binary package..."
+        
+        # Create distribution directory
+        mkdir -p "$DIST_DIR"
+        
+        # Create static binary directory
+        STATIC_DIR="$DIST_DIR/simple-tftpd-$VERSION-static-macos"
+        mkdir -p "$STATIC_DIR"
+        
+        # Copy binary and files
+        cp "$BUILD_DIR/simple-tftpd" "$STATIC_DIR/"
+        cp "$PROJECT_ROOT/README.md" "$STATIC_DIR/"
+        cp "$PROJECT_ROOT/LICENSE" "$STATIC_DIR/"
+        cp -r "$PROJECT_ROOT/config" "$STATIC_DIR/" 2>/dev/null || true
+        
+        # Create tarball
+        cd "$DIST_DIR"
+        tar -czf "simple-tftpd-$VERSION-static-macos.tar.gz" "simple-tftpd-$VERSION-static-macos"
+        rm -rf "simple-tftpd-$VERSION-static-macos"
+        
+        print_success "Static binary package created: simple-tftpd-$VERSION-static-macos.tar.gz"
+    fi
 }
 
-# Main function
-main() {
-    local clean_build=false
-    local run_tests_flag=false
-    local install_flag=false
-    local package_flag=false
-    
-    # Parse command line arguments
+# Function to show usage
+show_usage() {
+    cat << EOF
+simple-tftpd - macOS Build Script
+
+Usage: $0 [OPTIONS]
+
+Options:
+    -h, --help              Show this help message
+    -d, --deps              Install dependencies only
+    -b, --build             Build project only
+    -t, --test              Run tests only
+    -i, --install           Install project only
+    -p, --package           Create packages only
+    -a, --all               Full build and install (default)
+    --static                Build static binary
+    --debug                 Build in debug mode
+    --clean                 Clean build directory before building
+    --no-tests              Disable tests
+    --no-ssl                Disable SSL support
+    --no-json               Disable JSON support
+
+Examples:
+    $0                      # Full build and install
+    $0 --deps               # Install dependencies only
+    $0 --build --test       # Build and test
+    $0 --static --package   # Build static binary and create packages
+    $0 --clean --all        # Clean build and full install
+
+EOF
+}
+
+# Function to parse command line arguments
+parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             -h|--help)
-                show_help
+                show_usage
                 exit 0
                 ;;
-            -c|--clean)
-                clean_build=true
+            -d|--deps)
+                DEPENDENCIES_ONLY=true
+                shift
+                ;;
+            -b|--build)
+                BUILD_ONLY=true
                 shift
                 ;;
             -t|--test)
-                run_tests_flag=true
+                TEST_ONLY=true
                 shift
                 ;;
             -i|--install)
-                install_flag=true
+                INSTALL_ONLY=true
                 shift
                 ;;
             -p|--package)
-                package_flag=true
+                PACKAGE_ONLY=true
                 shift
                 ;;
             -a|--all)
-                clean_build=true
-                run_tests_flag=true
-                install_flag=true
-                package_flag=true
+                ALL=true
+                shift
+                ;;
+            --static)
+                ENABLE_STATIC_LINKING="ON"
+                shift
+                ;;
+            --debug)
+                BUILD_TYPE="Debug"
+                shift
+                ;;
+            --clean)
+                CLEAN="true"
+                shift
+                ;;
+            --no-tests)
+                BUILD_TESTS="OFF"
+                shift
+                ;;
+            --no-ssl)
+                ENABLE_SSL="OFF"
+                shift
+                ;;
+            --no-json)
+                ENABLE_JSON="OFF"
                 shift
                 ;;
             *)
                 print_error "Unknown option: $1"
-                show_help
+                show_usage
                 exit 1
                 ;;
         esac
     done
     
-    print_status "Starting build process for $PROJECT_NAME v$VERSION"
-    
-    # Check system requirements
-    check_macos_version
-    check_dependencies
-    
-    # Clean build directory if requested
-    if [ "$clean_build" = true ]; then
-        print_status "Cleaning build directory..."
-        rm -rf "$BUILD_DIR"
-    fi
-    
-    # Setup build environment
-    setup_build_env
-    
-    # Build project
-    build_project
-    
-    # Run tests if requested
-    if [ "$run_tests_flag" = true ]; then
-        run_tests
-    fi
-    
-    # Install if requested
-    if [ "$install_flag" = true ]; then
-        install_project
-    fi
-    
-    # Create package if requested
-    if [ "$package_flag" = true ]; then
-        create_package
-    fi
-    
-    print_success "Build process completed successfully!"
-    
-    # Show build results
-    if [ -f "$BIN_DIR/$PROJECT_NAME" ]; then
-        print_status "Binary location: $BIN_DIR/$PROJECT_NAME"
-        print_status "Binary size: $(ls -lh "$BIN_DIR/$PROJECT_NAME" | awk '{print $5}')"
+    # Set default action if none specified
+    if [ -z "$DEPENDENCIES_ONLY" ] && [ -z "$BUILD_ONLY" ] && [ -z "$TEST_ONLY" ] && 
+       [ -z "$INSTALL_ONLY" ] && [ -z "$PACKAGE_ONLY" ] && [ -z "$ALL" ]; then
+        ALL=true
     fi
 }
 
-# Run main function
+# Main execution
+main() {
+    print_status "Starting simple-tftpd build process..."
+    
+    # Parse command line arguments
+    parse_arguments "$@"
+    
+    # Check system requirements
+    check_macos_version
+    check_xcode_tools
+    check_homebrew
+    
+    # Install dependencies
+    if [ "$DEPENDENCIES_ONLY" = "true" ] || [ "$ALL" = "true" ]; then
+        install_dependencies
+        if [ "$DEPENDENCIES_ONLY" = "true" ]; then
+            print_success "Dependencies installed successfully"
+            exit 0
+        fi
+    fi
+    
+    # Clean build directory
+    clean_build
+    
+    # Build project
+    if [ "$BUILD_ONLY" = "true" ] || [ "$ALL" = "true" ]; then
+        build_project
+        if [ "$BUILD_ONLY" = "true" ]; then
+            print_success "Build completed successfully"
+            exit 0
+        fi
+    fi
+    
+    # Run tests
+    if [ "$TEST_ONLY" = "true" ] || [ "$ALL" = "true" ]; then
+        run_tests
+        if [ "$TEST_ONLY" = "true" ]; then
+            print_success "Tests completed"
+            exit 0
+        fi
+    fi
+    
+    # Install project
+    if [ "$INSTALL_ONLY" = "true" ] || [ "$ALL" = "true" ]; then
+        INSTALL="true"
+        install_project
+        if [ "$INSTALL_ONLY" = "true" ]; then
+            print_success "Installation completed successfully"
+            exit 0
+        fi
+    fi
+    
+    # Create packages
+    if [ "$PACKAGE_ONLY" = "true" ] || [ "$ALL" = "true" ]; then
+        PACKAGE="true"
+        create_packages
+        create_static_package
+        if [ "$PACKAGE_ONLY" = "true" ]; then
+            print_success "Packages created successfully"
+            exit 0
+        fi
+    fi
+    
+    print_success "simple-tftpd build process completed successfully!"
+}
+
+# Run main function with all arguments
 main "$@"

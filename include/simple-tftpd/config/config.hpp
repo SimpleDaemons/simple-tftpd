@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "simple_tftpd/platform.hpp"
-#include "simple_tftpd/logger.hpp"
+#include "simple-tftpd/utils/platform.hpp"
+#include "simple-tftpd/utils/logger.hpp"
 #include <string>
 #include <vector>
 #include <memory>
