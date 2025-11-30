@@ -4,9 +4,9 @@
 
 Simple TFTP Daemon is a lightweight, cross-platform TFTP (Trivial File Transfer Protocol) server implementation written in C++17. This checklist tracks the development progress and remaining tasks.
 
-## 📊 **Current Status: v0.2.0-alpha**
+## 📊 **Current Status: v0.2.0-beta**
 
-### 🎯 **Phase 1 Progress: ~85% Complete**
+### 🎯 **Phase 1 Progress: ~95% Complete**
 - ✅ **Packet System**: Complete RRQ/WRQ/DATA/ACK/ERROR/OACK serialization + parsing with network byte order
 - ✅ **JSON Configuration**: Full loader + serializer (`saveToFile()`, `toJson()`) with validation
 - ✅ **Network Communication**: UDP socket binding with IPv4/IPv6, non-blocking I/O, listener + cleanup threads
@@ -23,7 +23,7 @@ Simple TFTP Daemon is a lightweight, cross-platform TFTP (Trivial File Transfer 
 - [x] **Threading & Signals**: Listener + cleanup threads and graceful shutdown hooks exist
 
 ### 🔧 **Partially Implemented**
-- [ ] **Command-line Interface**: CLI flags defined but not wired into runtime config reloads
+- [x] **Command-line Interface**: CLI flags defined; hot-reload via SIGHUP implemented
 - [ ] **Service Integration**: Systemd/launchd definitions exist but untested
 - [ ] **Packaging**: Scripts exist without CI automation or artifact verification
 - [ ] **Statistics Tracking**: Structs defined; metrics not emitted anywhere
@@ -94,7 +94,7 @@ Simple TFTP Daemon is a lightweight, cross-platform TFTP (Trivial File Transfer 
 - [x] **Configuration Loading**
   - [x] File-based load + validation
   - [x] Command-line argument parsing (runtime override plumbing partial)
-  - [ ] Hot-reload + dynamic updates
+  - [x] Hot-reload via SIGHUP signal (dynamic config updates)
 
 #### **Security Implementation** ✅ **COMPLETE**
 - [x] **Access Control**
