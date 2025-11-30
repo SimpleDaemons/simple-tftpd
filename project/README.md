@@ -16,6 +16,9 @@ This directory contains project management, development, and internal documentat
 - **[ROADMAP.md](../ROADMAP.md)** - Development roadmap and future plans (in project root for visibility)
 - **[ROADMAP_CHECKLIST.md](ROADMAP_CHECKLIST.md)** - Detailed checklist tracking roadmap items
 
+### Technical Debt
+- **[TECHNICAL_DEBT.md](TECHNICAL_DEBT.md)** - Technical debt items, priorities, and action plans (if created)
+
 ## 📚 User Documentation
 
 For user-facing documentation (installation, configuration, usage guides), see the **[docs/](../docs/)** directory.
