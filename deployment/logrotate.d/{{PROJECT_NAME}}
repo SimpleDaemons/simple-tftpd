@@ -1,0 +1,14 @@
+/var/log/simple-tftpd/*.log {
+    daily
+    missingok
+    rotate 52
+    compress
+    delaycompress
+    notifempty
+    create 644 _simple-tftpd _simple-tftpd
+    postrotate
+        /bin/systemctl reload simple-tftpd > /dev/null 2>&1 || true
+    endscript
+    sharedscripts
+    su _simple-tftpd _simple-tftpd
+}

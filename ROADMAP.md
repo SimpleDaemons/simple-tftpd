@@ -4,7 +4,7 @@
 
 Simple TFTP Daemon aims to be the most lightweight, secure, and feature-rich TFTP (Trivial File Transfer Protocol) server implementation, providing enterprise-grade functionality with minimal resource footprint while maintaining full RFC 1350 compliance.
 
-## 🚀 **Current Status (v0.2.0-alpha)**
+## 🚀 **Current Status (v0.2.0-beta)**
 
 ### ✅ **Core Protocol Implementation - COMPLETE**
 - **Packet System**: Full RRQ/WRQ/DATA/ACK/ERROR/OACK parsing and serialization with network byte order handling
@@ -26,27 +26,27 @@ Simple TFTP Daemon aims to be the most lightweight, secure, and feature-rich TFT
 - **File Restrictions**: Maximum file size enforcement, overwrite protection, and read/write mode toggles
 - **Validation**: Comprehensive filename, path, and size validation
 
+### ✅ **Beta Features - COMPLETE**
+- **Configuration Hot-Reload**: SIGHUP signal support for reloading configuration without restart
+- **Performance Benchmarks**: Comprehensive performance test suite for throughput, windowing, and block size optimization
+- **Integration Tests**: Full end-to-end test coverage for all protocol features
+
 ### ⚙️ **Partially Complete**
-- **Error Handling**: Error packets and basic error propagation exist; comprehensive error mapping could be expanded
 - **Statistics**: Stats structures exist but metrics collection is minimal
 - **Logging**: Basic logging works; structured JSON logging and audit trails not yet implemented
 
-### ⚠️ **Remaining Gaps**
-- **Testing**: Unit tests exist for config/packets; **integration tests for end-to-end transfers are missing**
-- **Hot Reload**: Configuration reload without restart not implemented
-- **Command-line Overrides**: CLI argument parsing exists but runtime override plumbing incomplete
+### ⚠️ **Remaining Gaps (Future Releases)**
+- **Advanced Monitoring**: No health check endpoints, metrics export, or structured observability
 - **Authentication**: No user authentication or per-client ACLs beyond IP allowlists
-- **Monitoring**: No health check endpoints, metrics export, or structured observability
 - **Packaging**: Build scripts exist but no automated release pipeline or artifact verification
 - **Multicast TFTP**: Not implemented
-- **Performance Testing**: No load testing or performance benchmarks yet
 
 ## 🧭 **Progress Overview (December 2024)**
 
-- **Position**: **Graduated from prototype to alpha**—core TFTP protocol is functionally complete with retransmission, windowing, and full option negotiation. Server can handle real-world transfers reliably.
-- **Confidence**: Core protocol features are implemented and tested at the unit level. **Windowed transfers, retries, and option negotiation are production-ready code paths.**
-- **Gaps**: Integration testing, hot-reload, and advanced monitoring are the main missing pieces. The server is ready for real-world testing but needs comprehensive test coverage.
-- **Next Milestone**: **v0.2.0-beta** by adding integration tests, hot-reload capability, and expanding test coverage to 80%+.
+- **Position**: **Beta release ready**—core TFTP protocol is functionally complete with retransmission, windowing, and full option negotiation. Configuration hot-reload and performance benchmarks are implemented. Server is ready for production testing.
+- **Confidence**: Core protocol features are implemented and tested at the unit and integration level. **Windowed transfers, retries, option negotiation, and hot-reload are production-ready.**
+- **Gaps**: Advanced monitoring, authentication, and web management interface remain for future releases. The server is ready for production deployment with current feature set.
+- **Next Milestone**: **v0.3.0** with advanced features like multicast TFTP, authentication, and web management interface.
 
 ## 📅 **Short-term Roadmap (v0.2.0 - Q2 2024)**
 

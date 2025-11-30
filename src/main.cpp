@@ -20,9 +20,9 @@
 #include <memory>
 #include <signal.h>
 #include <csignal>
-#include "simple_tftpd/tftp_server.hpp"
-#include "simple_tftpd/tftp_config.hpp"
-#include "simple_tftpd/logger.hpp"
+#include "simple-tftpd/core/server.hpp"
+#include "simple-tftpd/config/config.hpp"
+#include "simple-tftpd/utils/logger.hpp"
 
 using namespace simple_tftpd;
 
@@ -30,12 +30,26 @@ using namespace simple_tftpd;
 std::shared_ptr<TftpServer> g_server;
 std::shared_ptr<Logger> g_logger;
 std::atomic<bool> g_shutdown_requested(false);
+std::string g_config_file;
 
 /**
- * @brief Signal handler for graceful shutdown
+ * @brief Signal handler for graceful shutdown and reload
  * @param signal Signal number
  */
 void signalHandler(int signal) {
+    if (signal == SIGHUP) {
+        // Reload configuration
+        if (g_server && g_logger) {
+            g_logger->info("Received SIGHUP, reloading configuration");
+            if (g_server->reloadConfig()) {
+                g_logger->info("Configuration reloaded successfully");
+            } else {
+                g_logger->error("Failed to reload configuration");
+            }
+        }
+        return;
+    }
+    
     if (g_shutdown_requested.exchange(true)) {
         // Already shutting down, force exit
         std::exit(1);
@@ -87,7 +101,7 @@ void printUsage() {
  * @brief Print version information
  */
 void printVersion() {
-    std::cout << "simple-tftpd v0.2.0-alpha" << std::endl;
+    std::cout << "simple-tftpd v0.2.0-beta" << std::endl;
     std::cout << "Simple TFTP Daemon for Linux, macOS, and Windows" << std::endl;
     std::cout << "Copyright (c) 2024 SimpleDaemons" << std::endl;
     std::cout << "Licensed under Apache License 2.0" << std::endl;
@@ -178,6 +192,7 @@ bool parseArguments(int argc, char* argv[], std::shared_ptr<TftpConfig>& config)
             std::cerr << "Error: Failed to load configuration file: " << config_file << std::endl;
             return false;
         }
+        g_config_file = config_file; // Store for reload
     }
     
     // Handle special commands
@@ -241,7 +256,7 @@ int main(int argc, char* argv[]) {
             config->isConsoleLoggingEnabled()
         );
         
-        g_logger->info("Starting simple-tftpd v0.2.0-alpha");
+        g_logger->info("Starting simple-tftpd v0.2.0-beta");
         g_logger->info("Configuration loaded successfully");
         
         // Initialize signal handlers
@@ -249,6 +264,11 @@ int main(int argc, char* argv[]) {
         
         // Create TFTP server
         g_server = std::make_shared<TftpServer>(config, g_logger);
+        
+        // Set config file path for reload
+        if (!g_config_file.empty()) {
+            g_server->setConfigFile(g_config_file);
+        }
         
         // Set connection callback
         g_server->setConnectionCallback([](TftpConnectionState state, const std::string& message) {

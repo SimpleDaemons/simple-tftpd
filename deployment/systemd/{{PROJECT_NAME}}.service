@@ -1,0 +1,17 @@
+[Unit]
+Description=Simple TFTP Daemon - A lightweight and secure TFTP server
+After=network.target
+
+[Service]
+Type=simple
+User=simple-tftpd
+Group=simple-tftpd
+ExecStart=/usr/local/bin/simple-tftpd
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=simple-tftpd
+
+[Install]
+WantedBy=multi-user.target

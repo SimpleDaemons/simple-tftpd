@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simple_tftpd/tftp_packet.hpp"
+#include "simple-tftpd/core/packet.hpp"
 #include <cstring>
 
 namespace simple_tftpd {

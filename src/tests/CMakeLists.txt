@@ -60,6 +60,7 @@ if(GTest_FOUND)
     # Integration test source files
     set(INTEGRATION_TEST_SOURCES
         integration/integration_tests.cpp
+        integration/performance_tests.cpp
         integration/tftp_client.cpp
         utils/test_helpers.cpp
     )

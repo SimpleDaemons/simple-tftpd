@@ -16,10 +16,10 @@
 
 #pragma once
 
-#include "simple_tftpd/platform.hpp"
-#include "simple_tftpd/tftp_connection.hpp"
-#include "simple_tftpd/tftp_config.hpp"
-#include "simple_tftpd/logger.hpp"
+#include "simple-tftpd/utils/platform.hpp"
+#include "simple-tftpd/core/connection.hpp"
+#include "simple-tftpd/config/config.hpp"
+#include "simple-tftpd/utils/logger.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -115,10 +115,17 @@ public:
     std::shared_ptr<Logger> getLogger() const;
     
     /**
-     * @brief Reload configuration
+     * @brief Reload configuration from file
+     * @param config_file Optional config file path (uses original if not provided)
      * @return true if reloaded successfully, false otherwise
      */
-    bool reloadConfig();
+    bool reloadConfig(const std::string& config_file = "");
+    
+    /**
+     * @brief Set configuration file path for reloading
+     * @param config_file Path to configuration file
+     */
+    void setConfigFile(const std::string& config_file);
     
     /**
      * @brief Get server statistics
@@ -204,6 +211,7 @@ private:
     std::string listen_address_;
     port_t listen_port_;
     bool ipv6_enabled_;
+    std::string config_file_path_;
     
     std::thread listener_thread_;
     std::thread cleanup_thread_;

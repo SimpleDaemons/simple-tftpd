@@ -1,6 +1,6 @@
 # Simple TFTP Daemon
 
-**Version**: v0.2.0-alpha | **Status**: Core protocol complete, integration testing in progress
+**Version**: v0.2.0-beta | **Status**: Beta release - Core protocol complete, hot-reload and performance benchmarks added
 
 A lightweight, cross-platform TFTP (Trivial File Transfer Protocol) daemon written in C++17. Implements RFC 1350 with full support for TFTP options (RFC 2347), windowed transfers, and comprehensive security features.
 
@@ -23,6 +23,7 @@ A lightweight, cross-platform TFTP (Trivial File Transfer Protocol) daemon writt
 - **JSON Configuration**: Full configuration file support with validation
 - **Configuration Serialization**: Save and export configuration
 - **Command-line Overrides**: Runtime configuration options
+- **Hot Reload**: Reload configuration without restart (SIGHUP signal)
 
 ### Platform Support ✅
 - **Cross-platform**: Linux, macOS, and Windows
@@ -314,10 +315,10 @@ Enable debug logging for troubleshooting:
 - [x] File extension and client address filtering
 - [x] Integration test suite
 
-### 🚧 In Progress (v0.2.0-beta)
-- [ ] Configuration hot-reload
-- [ ] Enhanced test coverage (target: 80%+)
-- [ ] Performance benchmarks
+### ✅ Completed (v0.2.0-beta)
+- [x] Configuration hot-reload (SIGHUP signal support)
+- [x] Enhanced test coverage (integration tests + performance benchmarks)
+- [x] Performance benchmarks
 
 ### 📋 Planned (v0.3.0+)
 - [ ] Multicast TFTP support

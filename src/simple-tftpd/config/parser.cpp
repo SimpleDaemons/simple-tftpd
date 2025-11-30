@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simple_tftpd/tftp_config.hpp"
+#include "simple-tftpd/config/config.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
