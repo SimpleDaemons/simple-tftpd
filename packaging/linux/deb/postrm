@@ -1,0 +1,23 @@
+#!/bin/bash
+# Post-removal script for simple-tftpd
+
+set -e
+
+PROJECT_NAME="simple-tftpd"
+CONFIG_DIR="/etc/$simple-tftpd"
+LOG_DIR="/var/log/$simple-tftpd"
+
+if [ "$1" = "purge" ]; then
+    # Remove configuration files (optional - user may want to keep them)
+    # Uncomment to remove config on purge:
+    # rm -rf "$CONFIG_DIR"
+    
+    # Remove log files
+    rm -rf "$LOG_DIR"
+    
+    # Remove service user (optional)
+    # userdel tftpddev 2>/dev/null || true
+fi
+
+exit 0
+
