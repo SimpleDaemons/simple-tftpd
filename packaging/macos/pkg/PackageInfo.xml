@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pkg-info format-version="2" identifier="com.simpledaemons.simple-tftpd" version="${VERSION}" install-location="/usr/local/bin" auth="root">
+    <payload installKBytes="${INSTALL_SIZE}" numberOfFiles="${FILE_COUNT}"/>
+    <bundle-version>
+        <bundle id="com.simpledaemons.simple-tftpd" CFBundleIdentifier="com.simpledaemons.simple-tftpd" path="simple-tftpd" CFBundleVersion="${VERSION}"/>
+    </bundle-version>
+    <upgrade-bundle>
+        <bundle id="com.simpledaemons.simple-tftpd" CFBundleVersion="0.0.0"/>
+    </upgrade-bundle>
+    <update-bundle/>
+    <atomic-update-bundle/>
+    <strict-identifier/>
+    <relocate>
+        <bundle id="com.simpledaemons.simple-tftpd">/usr/local/bin</bundle>
+    </relocate>
+    <scripts>
+        <postinstall file="./scripts/postinstall"/>
+    </scripts>
+</pkg-info>
+
