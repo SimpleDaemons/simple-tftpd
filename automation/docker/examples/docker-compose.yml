@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  simple-tftpd:
+    image: simple-tftpd:latest
+    container_name: simple-tftpd
+    ports:
+      - "69:69/tcp"
+    volumes:
+      - ./config:/etc/simple-tftpd:ro
+      - ./data:/var/lib/simple-tftpd
+      - ./logs:/var/log/simple-tftpd
+    environment:
+      - SIMPLE-TFTPD_CONFIG=/etc/simple-tftpd/simple-tftpd.conf
+      - SIMPLE-TFTPD_LOG_LEVEL=info
+      - SIMPLE-TFTPD_BIND_ADDRESS=0.0.0.0
+      - SIMPLE-TFTPD_BIND_PORT=69
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "69"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - simple-tftpd-network
+
+networks:
+  simple-tftpd-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
