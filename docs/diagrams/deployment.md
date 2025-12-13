@@ -12,9 +12,9 @@ graph TB
 
     subgraph "TFTP Server"
         Server[simple-tftpd<br/>Main Process]
-        Config[/etc/simple-tftpd/<br/>Configuration]
-        RootDir[/var/tftp<br/>Root Directory]
-        Logs[/var/log/simple-tftpd/<br/>Transfer Logs]
+        Config[Configuration<br/>/etc/simple-tftpd/]
+        RootDir[Root Directory<br/>/var/tftp]
+        Logs[Transfer Logs<br/>/var/log/simple-tftpd/]
     end
 
     subgraph "System Services"
@@ -45,9 +45,9 @@ graph TB
 
     subgraph "TFTP Server"
         Server[simple-tftpd<br/>PXE Boot Server]
-        BootFiles[/var/tftp/pxelinux.0<br/>Boot Files]
-        Kernel[/var/tftp/kernel<br/>Kernel Images]
-        Initrd[/var/tftp/initrd<br/>Initrd Images]
+        BootFiles[Boot Files<br/>/var/tftp/pxelinux.0]
+        Kernel[Kernel Images<br/>/var/tftp/kernel]
+        Initrd[Initrd Images<br/>/var/tftp/initrd]
     end
 
     subgraph "DHCP Server"
