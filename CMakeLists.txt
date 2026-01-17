@@ -45,9 +45,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Source files
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
-if(NOT ENABLE_TESTS)
-    list(FILTER SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
-endif()
+# Always exclude test files from main executable (tests are built separately)
+list(FILTER SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
+list(FILTER SOURCES EXCLUDE REGEX ".*tests/.*\\.cpp$")
 file(GLOB_RECURSE HEADERS "include/*.hpp" "include/*.h")
 
 # Create executable

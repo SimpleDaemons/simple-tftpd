@@ -10,6 +10,7 @@
 
 #include "tftp_client.hpp"
 #include <cstring>
+#include <cctype>
 #include <thread>
 #include <chrono>
 #include <algorithm>
