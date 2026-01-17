@@ -165,6 +165,11 @@
       ignore_errors: yes
       become: false
 
+    - name: Check if pip supports --break-system-packages flag
+      set_fact:
+        pip_supports_break_system: "{{ pip_help is succeeded and ('--break-system-packages' in (pip_help.stdout | default(''))) }}"
+      when: ansible_facts['os_family'] == "RedHat"
+
     - name: Install Python requests package (CentOS/RHEL via pip - new pip with --break-system-packages)
       pip:
         name: requests
@@ -173,8 +178,7 @@
       become: yes
       when: 
         - ansible_facts['os_family'] == "RedHat"
-        - pip_help is succeeded
-        - "'--break-system-packages' in pip_help.stdout"
+        - pip_supports_break_system | default(false) | bool
       ignore_errors: yes
 
     - name: Install Python requests package (CentOS/RHEL via pip - old pip without --break-system-packages)
@@ -184,7 +188,7 @@
       become: yes
       when: 
         - ansible_facts['os_family'] == "RedHat"
-        - pip_help is failed or (pip_help is succeeded and "'--break-system-packages' not in pip_help.stdout")
+        - not (pip_supports_break_system | default(false) | bool)
       ignore_errors: yes
 
     - name: Install Python requests package (Ubuntu/Debian fallback - with --break-system-packages)
@@ -225,6 +229,21 @@
       become: yes
       register: git_result
 
+    - name: Fix repository ownership
+      file:
+        path: "{{ project_dir }}"
+        owner: "{{ build_user }}"
+        group: "{{ build_group }}"
+        recurse: yes
+      become: yes
+
+    - name: Configure git safe directory
+      command: git config --global --add safe.directory "{{ project_dir }}"
+      become_user: "{{ build_user }}"
+      become: yes
+      changed_when: false
+      ignore_errors: yes
+
     - name: Display git update status
       debug:
         msg: "Repository {{ 'updated' if git_result.changed else 'already up to date' }}"
@@ -233,6 +252,7 @@
       command: git rev-parse HEAD
       args:
         chdir: "{{ project_dir }}"
+      become_user: "{{ build_user }}"
       register: git_commit
       changed_when: false
 
