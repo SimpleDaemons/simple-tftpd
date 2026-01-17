@@ -8,7 +8,10 @@ This directory contains all automation scripts and configuration files for setti
 automation/
 ├── ansible/                  # Ansible automation
 │   ├── playbook.yml         # Ansible playbook for VM setup
+│   ├── playbook-build.yml   # Comprehensive build playbook for remote VMs
 │   ├── inventory.ini        # Ansible inventory file
+│   ├── inventory-vmware.ini # VMware Fusion VM inventory
+│   ├── ansible.cfg          # Ansible configuration
 │   ├── requirements.yml     # Ansible Galaxy requirements
 │   ├── Makefile.vm          # Makefile for VM operations
 │   ├── vagrant-boxes.yml   # Vagrant box configurations
@@ -17,20 +20,19 @@ automation/
 │   │   ├── vm-build        # Build script for VM
 │   │   ├── vm-test         # Test script for VM
 │   │   ├── setup-remote.sh # Remote setup script
-│   │   └── build.sh        # Build script
+│   │   ├── build.sh        # Build script
+│   │   ├── remote-build.sh # Remote build script for VMware VMs
+│   │   ├── collect-packages.sh # Collect packages from remote VMs
+│   │   └── organize-packages.sh # Organize packages into centralized directory
 │   └── templates/          # Configuration templates
 ├── ci/                      # CI/CD configuration
-│   ├── Jenkinsfile         # Jenkins pipeline
-│   └── .travis.yml         # Travis CI configuration
+│   └── Jenkinsfile         # Jenkins pipeline
 ├── docker/                  # Docker configuration
 │   ├── Dockerfile          # Docker image definition
-│   ├── docker-compose.yml  # Docker Compose configuration
 │   └── examples/           # Docker examples
+│       └── docker-compose.yml # Docker Compose example
 └── vagrant/                 # Vagrant configuration
-    ├── Vagrantfile         # Main Vagrantfile
-    └── virtuals/           # Multi-VM configurations
-        ├── ubuntu_dev/
-        └── centos_dev/
+    └── Vagrantfile         # Main Vagrantfile
 ```
 
 ## Quick Start
@@ -102,10 +104,53 @@ Vagrant configuration is in `automation/vagrant/`:
 
 Ansible automation is in `automation/ansible/`:
 - `playbook.yml` - Main playbook for environment setup
-- `inventory.ini` - Host inventory
+- `playbook-build.yml` - Comprehensive build playbook for remote VMs (supports Ubuntu, Debian, CentOS, macOS)
+- `inventory.ini` - Development host inventory
+- `inventory-vmware.ini` - VMware Fusion VM inventory for build automation
+- `ansible.cfg` - Ansible configuration
 - `requirements.yml` - Ansible Galaxy dependencies
 - `scripts/` - Helper scripts for VM operations
+  - `remote-build.sh` - Build simple-tftpd on remote VMware VMs
+  - `collect-packages.sh` - Collect built packages from remote VMs
+  - `organize-packages.sh` - Organize packages into centralized directory
 - `templates/` - Configuration templates
+
+### Remote Build Automation
+
+The automation system supports building on remote VMware Fusion VMs:
+
+```bash
+# Build on all VMs
+cd automation/ansible/scripts
+./remote-build.sh
+
+# Build on specific VM
+./remote-build.sh -l BUILD_DEB
+
+# Build with packages
+./remote-build.sh --packages
+
+# Clean build
+./remote-build.sh -c --packages
+
+# Build specific branch
+./remote-build.sh -b develop -t Debug
+```
+
+### Package Collection
+
+After building packages on remote VMs, collect them locally:
+
+```bash
+# Collect packages from all VMs
+cd automation/ansible/scripts
+./collect-packages.sh
+```
+
+This will:
+1. Fetch all packages (DEB, RPM, DMG, PKG, source) from remote VMs
+2. Organize them in `dist/` directory structure
+3. Create centralized directory at `dist/centralized/v{VERSION}/`
 
 ---
 
