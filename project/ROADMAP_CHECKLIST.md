@@ -4,6 +4,12 @@
 
 Simple TFTP Daemon is a lightweight, cross-platform TFTP (Trivial File Transfer Protocol) server implementation written in C++17. This checklist tracks the development progress and remaining tasks.
 
+**Licensing Strategy:**
+- **Production Edition (Apache 2.0)**: Free and open-source, freely available for any use
+- **Enterprise Edition (BSL)**: Ultimate goal - Commercial license with advanced enterprise features
+
+See [docs/LICENSING_STRATEGY.md](../docs/LICENSING_STRATEGY.md) for detailed licensing information.
+
 ## 📊 **Current Status: v0.2.0-beta → v0.3.0 (Production Ready)**
 
 ### 🎯 **Phase 1 Progress: ~95% Complete**
@@ -136,87 +142,151 @@ Simple TFTP Daemon is a lightweight, cross-platform TFTP (Trivial File Transfer 
 
 ---
 
-## 🔧 **Phase 2: Enhanced Features (v0.3.0)**
+## 🔧 **Phase 2: Production Features (v0.3.0) - Apache 2.0 (Free)**
 
-### **Performance Optimization**
+### **Performance Optimization** (Production - Free)
 - [ ] **Connection Pooling**
   - [ ] Connection reuse
   - [ ] Resource management
   - [ ] Memory optimization
 
+- [ ] **Basic Performance Improvements**
+  - [ ] Memory optimization
+  - [ ] Network optimization
+  - [ ] Performance profiling tools
+
+### **Production Security** (Production - Free)
+- [x] **Basic Security** ✅ **COMPLETE**
+  - [x] Path sanitization
+  - [x] IP address filtering
+  - [x] File extension filtering
+  - [x] File size limits
+
+### **Production Monitoring and Logging** ✅ **MOSTLY COMPLETE**
+- [x] **Basic Logging** ✅ **COMPLETE**
+  - [x] File and console logging
+  - [x] Log levels (DEBUG, INFO, WARNING, ERROR, FATAL)
+  - [x] Log rotation (covered in deployment guide)
+  - [ ] JSON log format (basic logging exists, structured format pending)
+
+- [x] **Statistics and Metrics** ✅ **COMPLETE**
+  - [x] Transfer statistics (TransferStats in Monitoring class)
+  - [x] Performance metrics (ServerMetrics in Monitoring class)
+  - [x] Health monitoring (Monitoring::performHealthCheck())
+  - [x] Status APIs (getMetrics, getHealthCheckJson)
+
+---
+
+## 🌟 **Phase 3: Enterprise Features (v0.4.0+) - BSL (Commercial) - Ultimate Goal**
+
+### **Enterprise Performance** 🔒 **BSL Licensed**
 - [ ] **Async I/O Operations**
   - [ ] Non-blocking file operations
   - [ ] Event-driven architecture
   - [ ] Scalability improvements
 
-- [ ] **Caching System**
+- [ ] **Advanced Caching System**
   - [ ] File metadata caching
   - [ ] Directory listing cache
-  - [ ] Performance monitoring
+  - [ ] Multi-level caching strategies
+  - [ ] Zero-copy transfers
 
-### **Advanced Security**
+- [ ] **Advanced Performance Features**
+  - [ ] CPU affinity
+  - [ ] Memory pooling
+  - [ ] Advanced connection pooling
+
+### **Enterprise Security** 🔒 **BSL Licensed**
 - [ ] **Authentication System**
-  - [ ] Client authentication
-  - [ ] Access control lists
-  - [ ] User management
+  - [ ] User authentication
+  - [ ] Role-based access control (RBAC)
+  - [ ] Access control lists (ACLs)
+  - [ ] Per-user and per-client policies
+  - [ ] LDAP/Active Directory integration
+  - [ ] OAuth/OIDC support
+  - [ ] Multi-factor authentication (MFA)
+
+- [ ] **Advanced Security Features**
+  - [ ] Rate limiting per client/IP
+  - [ ] DDoS protection and mitigation
+  - [ ] Advanced threat detection
+  - [ ] Security event logging
+  - [ ] Compliance reporting
+  - [ ] IP reputation checking
+  - [ ] Geo-blocking
 
 - [ ] **Encryption Support**
   - [ ] TLS/SSL integration
   - [ ] Certificate management
   - [ ] Secure file transfer
 
-### **Monitoring and Logging** ✅ **MOSTLY COMPLETE**
-- [x] **Structured Logging** (Partial)
-  - [ ] JSON log format (basic logging exists)
-  - [x] Log rotation (covered in deployment guide)
-  - [x] Log level management (implemented)
+### **Enterprise Monitoring and Observability** 🔒 **BSL Licensed**
+- [ ] **Structured Logging**
+  - [ ] JSON log format
+  - [ ] Syslog integration
+  - [ ] Log aggregation
 
-- [x] **Statistics and Metrics** ✅ **COMPLETE**
-  - [x] Transfer statistics (TransferStats in Monitoring class)
-  - [x] Performance metrics (ServerMetrics in Monitoring class)
-  - [x] Health monitoring (Monitoring::performHealthCheck())
+- [ ] **Advanced Monitoring**
+  - [ ] Prometheus integration
+  - [ ] Grafana integration
+  - [ ] Custom alerting
+  - [ ] Distributed tracing
+  - [ ] Advanced metrics and analytics
 
-- [ ] **SNMP Support** (v0.4.0)
+- [ ] **SNMP Support** 🔒 **BSL Licensed**
   - [ ] SNMP agent integration
   - [ ] MIB definitions
   - [ ] Network monitoring
+  - [ ] SNMP traps and notifications
 
 ---
 
-## 🌟 **Phase 3: Enterprise Features (v0.4.0)**
-
-### **Web Management Interface**
+### **Web Management Interface** 🔒 **BSL Licensed - Ultimate Goal**
 - [ ] **REST API**
   - [ ] Configuration management API
   - [ ] Statistics and monitoring API
   - [ ] Connection management API
+  - [ ] Authentication API
+  - [ ] Webhook support
 
 - [ ] **Web Dashboard**
   - [ ] Real-time monitoring
   - [ ] Configuration editor
   - [ ] File browser
+  - [ ] User management UI
+  - [ ] Statistics dashboard
+  - [ ] Connection management UI
 
-### **Advanced Protocol Features**
+### **Advanced Protocol Features** 🔒 **BSL Licensed**
 - [ ] **Multicast TFTP**
   - [ ] Multicast group support
   - [ ] Broadcast file distribution
   - [ ] Network efficiency
 
-- [ ] **Windowed Transfers**
-  - [ ] Multiple block windows
-  - [ ] Parallel block processing
-  - [ ] Performance optimization
-
-### **High Availability**
+### **High Availability & Clustering** 🔒 **BSL Licensed - Ultimate Goal**
 - [ ] **Clustering Support**
   - [ ] Multi-server coordination
   - [ ] Load balancing
   - [ ] Failover mechanisms
+  - [ ] State synchronization
+  - [ ] Distributed file serving
+  - [ ] Health check coordination
 
 - [ ] **Backup and Recovery**
   - [ ] Configuration backup
   - [ ] State persistence
   - [ ] Disaster recovery
+  - [ ] Configuration versioning
+
+### **Plugin Architecture** 🔒 **BSL Licensed - Ultimate Goal**
+- [ ] **Plugin System**
+  - [ ] Extensible plugin framework
+  - [ ] Authentication plugins
+  - [ ] Storage plugins
+  - [ ] Protocol plugins
+  - [ ] Integration plugins
+  - [ ] Plugin API and SDK
+  - [ ] Plugin marketplace
 
 ---
 
@@ -310,10 +380,25 @@ Simple TFTP Daemon is a lightweight, cross-platform TFTP (Trivial File Transfer 
 - **Sprint 4**: Testing and documentation
 
 ### **Milestone Dates**
-- **v0.2.0 (Core Protocol)**: Q2 2024
-- **v0.3.0 (Enhanced Features)**: Q3 2024
-- **v0.4.0 (Enterprise Features)**: Q4 2024
-- **v1.0.0 (Production Ready)**: Q1 2025
+
+#### Production Edition (Apache 2.0 - Free)
+- **v0.2.0 (Core Protocol)**: ✅ Q2 2024 - Complete
+- **v0.3.0 (Production Ready)**: Q1 2025 - In Progress (~90% complete)
+- **v1.0.0 (Stable Production)**: Q2 2025 - Target
+
+#### Enterprise Edition (BSL - Commercial - Ultimate Goal)
+- **v0.4.0-enterprise (First Enterprise Release)**: Q2 2025 - Target
+  - Web management interface
+  - REST API
+  - SNMP integration
+  - Advanced authentication
+- **v0.5.0-enterprise**: Q3 2025 - Target
+  - Clustering support
+  - High availability
+  - Plugin architecture
+- **v1.0.0-enterprise (Complete Enterprise)**: Q4 2025 - Ultimate Goal
+  - Full enterprise feature set
+  - Complete enterprise support
 
 ---
 
@@ -335,10 +420,41 @@ Simple TFTP Daemon is a lightweight, cross-platform TFTP (Trivial File Transfer 
 
 *This checklist is updated regularly as development progresses. Last updated: January 2025*
 
-## 🎉 **Recent Achievements (Production Readiness)**
+## 🎉 **Recent Achievements**
 
+### Production Edition (Apache 2.0 - Free)
 - ✅ **Test Coverage Expansion**: 95+ unit tests added, coverage increased from ~40% to 60-65%
 - ✅ **Production Monitoring**: Health checks, metrics collection, status APIs implemented
 - ✅ **Memory Leak Detection**: Infrastructure added (Valgrind/AddressSanitizer support)
 - ✅ **Documentation**: Production deployment guide and troubleshooting guide completed
 - ✅ **Build Automation**: Ansible playbooks, Docker support, CI/CD integration complete
+- ✅ **Dual Licensing Strategy**: Production (Apache 2.0) and Enterprise (BSL) licensing defined
+
+### Enterprise Edition (BSL - Ultimate Goal)
+- 📋 **Licensing Strategy Defined**: Clear separation of production (free) and enterprise (commercial) features
+- 📋 **Feature Roadmap**: Comprehensive enterprise feature list documented
+- 📋 **Build System**: Enterprise feature flags and build configuration ready
+
+---
+
+## 📋 **Feature Licensing Reference**
+
+### Production Edition Features (Apache 2.0 - Free)
+All features in **Phase 1** and **Phase 2** are part of the Production Edition and are freely available under Apache 2.0 license.
+
+### Enterprise Edition Features (BSL - Commercial - Ultimate Goal)
+All features marked with 🔒 **BSL Licensed** in **Phase 3** require a commercial license. These are the ultimate goals for the project.
+
+**Key Enterprise Features:**
+- 🔒 Web Management Interface
+- 🔒 REST API
+- 🔒 SNMP Integration
+- 🔒 Advanced Authentication & RBAC
+- 🔒 Rate Limiting & DDoS Protection
+- 🔒 Clustering & High Availability
+- 🔒 Plugin Architecture
+- 🔒 Advanced Monitoring & Observability
+
+For detailed feature breakdown, see [project/FEATURE_LICENSING.md](FEATURE_LICENSING.md).
+
+**Enterprise Licensing:** Contact licensing@simpledaemons.com
