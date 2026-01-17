@@ -24,6 +24,7 @@ if(GTest_FOUND)
     # Unit test source files
     set(UNIT_TEST_SOURCES
         test_main.cpp
+        unit/packet_tests.cpp
         utils/test_helpers.cpp
     )
     

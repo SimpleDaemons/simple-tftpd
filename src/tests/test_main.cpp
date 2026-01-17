@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "simple-tftpd/utils/logger.hpp"
-#include "simple-tftpd/config.hpp"
-#include "simple-tftpd/packet.hpp"
+#include "simple-tftpd/config/config.hpp"
+#include "simple-tftpd/core/packet.hpp"
 
 // Basic test to ensure the test framework works
 TEST(BasicTest, TestFramework) {
