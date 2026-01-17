@@ -131,11 +131,19 @@ if(UNIX AND NOT APPLE)
         DESTINATION lib/systemd/system
     )
 elseif(APPLE)
-    # Install launchd plist file (use actual file, not template)
-    install(FILES deployment/launchd/com.simpledaemons.simple-tftpd.plist
-        DESTINATION /Library/LaunchDaemons
-        RENAME com.simple-tftpd.simple-tftpd.plist
-    )
+    # Install launchd plist file
+    # Use the file that matches the expected naming convention
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/deployment/launchd/com.simple-tftpd.simple-tftpd.plist")
+        install(FILES deployment/launchd/com.simple-tftpd.simple-tftpd.plist
+            DESTINATION /Library/LaunchDaemons
+        )
+    else()
+        # Fallback to simpledaemons naming if the expected file doesn't exist
+        install(FILES deployment/launchd/com.simpledaemons.simple-tftpd.plist
+            DESTINATION /Library/LaunchDaemons
+            RENAME com.simple-tftpd.simple-tftpd.plist
+        )
+    endif()
 endif()
 
 # Tests
