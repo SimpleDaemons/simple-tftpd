@@ -188,7 +188,7 @@ private:
     ServerMetrics metrics_;
     std::chrono::steady_clock::time_point start_time_;
     
-    void updateUptime();
+    void updateUptime() const;
     void updateSystemMetrics();
 };
 

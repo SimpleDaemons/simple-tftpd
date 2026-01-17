@@ -215,7 +215,7 @@ TEST_F(MonitoringTest, ConcurrentAccess) {
     std::vector<std::thread> threads;
     
     for (int i = 0; i < 10; i++) {
-        threads.emplace_back([this, i]() {
+        threads.emplace_back([this]() {
             for (int j = 0; j < 100; j++) {
                 monitoring->recordTransfer(1024, true, 100);
                 monitoring->recordConnection(true);

@@ -11,7 +11,7 @@
 #pragma once
 
 #include "simple-tftpd/utils/platform.hpp"
-#include "simple-tftpd/packet.hpp"
+#include "simple-tftpd/core/packet.hpp"
 #include <string>
 #include <vector>
 #include <cstdint>

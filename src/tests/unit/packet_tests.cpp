@@ -35,7 +35,7 @@ TEST_F(TftpPacketTest, PacketOpcodeSetGet) {
 }
 
 TEST_F(TftpPacketTest, InvalidPacketFromEmptyData) {
-    uint8_t empty_data[] = {};
+    uint8_t empty_data[1] = {0}; // Use array with at least one element
     TftpPacket packet(empty_data, 0);
     EXPECT_FALSE(packet.isValid());
 }

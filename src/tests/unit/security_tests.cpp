@@ -150,11 +150,11 @@ TEST_F(SecurityTest, ReadWritePermissions) {
 TEST_F(SecurityTest, OverwriteProtection) {
     // Enable overwrite protection
     config->setOverwriteProtection(true);
-    EXPECT_TRUE(config->isOverwriteProtection());
+    EXPECT_TRUE(config->isOverwriteProtectionEnabled());
     
     // Disable overwrite protection
     config->setOverwriteProtection(false);
-    EXPECT_FALSE(config->isOverwriteProtection());
+    EXPECT_FALSE(config->isOverwriteProtectionEnabled());
 }
 
 // Test directory allowlist

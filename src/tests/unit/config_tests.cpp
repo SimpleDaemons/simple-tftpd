@@ -244,21 +244,21 @@ TEST_F(TftpConfigTest, PerformanceSettings) {
 
 // Test logging configuration
 TEST_F(TftpConfigTest, LoggingConfiguration) {
-    config->setLogLevel("DEBUG");
-    EXPECT_EQ(config->getLogLevel(), "DEBUG");
+    config->setLogLevel(LogLevel::DEBUG);
+    EXPECT_EQ(config->getLogLevel(), LogLevel::DEBUG);
     
     config->setLogFile("/tmp/test.log");
     EXPECT_EQ(config->getLogFile(), "/tmp/test.log");
     
     config->setConsoleLogging(false);
-    EXPECT_FALSE(config->isConsoleLogging());
+    EXPECT_FALSE(config->isConsoleLoggingEnabled());
 }
 
 // Test overwrite protection
 TEST_F(TftpConfigTest, OverwriteProtection) {
     config->setOverwriteProtection(true);
-    EXPECT_TRUE(config->isOverwriteProtection());
+    EXPECT_TRUE(config->isOverwriteProtectionEnabled());
     
     config->setOverwriteProtection(false);
-    EXPECT_FALSE(config->isOverwriteProtection());
+    EXPECT_FALSE(config->isOverwriteProtectionEnabled());
 }
