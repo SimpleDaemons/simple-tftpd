@@ -229,13 +229,23 @@
       become: yes
       register: git_result
 
-    - name: Fix repository ownership
+    - name: Fix repository ownership (Linux)
       file:
         path: "{{ project_dir }}"
         owner: "{{ build_user }}"
         group: "{{ build_group }}"
         recurse: yes
       become: yes
+      when: ansible_facts['os_family'] != "Darwin"
+
+    - name: Fix repository ownership (macOS)
+      file:
+        path: "{{ project_dir }}"
+        owner: "{{ build_user }}"
+        group: "staff"
+        recurse: yes
+      become: yes
+      when: ansible_facts['os_family'] == "Darwin"
 
     - name: Configure git safe directory
       command: git config --global --add safe.directory "{{ project_dir }}"
