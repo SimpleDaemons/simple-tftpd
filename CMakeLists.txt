@@ -3,7 +3,7 @@
 # Copyright 2024 SimpleDaemons
 
 cmake_minimum_required(VERSION 3.16)
-project(simple-tftpd VERSION 0.1.0 LANGUAGES CXX)
+project(simple-tftpd VERSION 0.1.0 LANGUAGES CXX DESCRIPTION "A lightweight, cross-platform TFTP daemon")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -131,8 +131,10 @@ if(UNIX AND NOT APPLE)
         DESTINATION lib/systemd/system
     )
 elseif(APPLE)
-    install(FILES deployment/launchd/com.${PROJECT_NAME}.${PROJECT_NAME}.plist
+    # Install launchd plist file (use actual file, not template)
+    install(FILES deployment/launchd/com.simpledaemons.simple-tftpd.plist
         DESTINATION /Library/LaunchDaemons
+        RENAME com.simple-tftpd.simple-tftpd.plist
     )
 endif()
 
@@ -152,7 +154,12 @@ if(ENABLE_PACKAGING)
     # Package information
     set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
     set(CPACK_PACKAGE_VENDOR "SimpleDaemons")
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+    if(PROJECT_DESCRIPTION)
+        set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+    else()
+        set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A lightweight, cross-platform TFTP daemon")
+    endif()
+    set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
     set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
     set(CPACK_PACKAGE_CONTACT "info@simpledaemons.com")
     set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/simpledaemons/${PROJECT_NAME}")
