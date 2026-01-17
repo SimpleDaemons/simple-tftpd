@@ -23,6 +23,7 @@ if(GTest_FOUND)
     
     # Unit test source files
     set(UNIT_TEST_SOURCES
+        test_main.cpp
         unit/packet_tests.cpp
         unit/connection_tests.cpp
         unit/config_tests.cpp
@@ -30,9 +31,6 @@ if(GTest_FOUND)
         unit/monitoring_tests.cpp
         utils/test_helpers.cpp
     )
-    
-    # Create main test file if it doesn't exist or has duplicate tests
-    # test_main.cpp should only contain main() and basic framework tests
     
     # Unit test executable
     add_executable(simple-tftpd-tests ${UNIT_TEST_SOURCES})
@@ -87,6 +85,7 @@ if(GTest_FOUND)
     
     # Integration test source files
     set(INTEGRATION_TEST_SOURCES
+        test_main.cpp  # Provides main() function for Google Test
         integration/integration_tests.cpp
         integration/performance_tests.cpp
         integration/tftp_client.cpp
