@@ -8,7 +8,7 @@
     build_user: "{{ ansible_user }}"
     build_group: "{{ ansible_user }}"
     project_name: simple-tftpd
-    git_repo_url: "https://github.com/simpledaemons/simple-tftpd.git"
+    git_repo_url: "https://github.com/SimpleDaemons/simple-tftpd.git"
     git_branch: "{{ git_branch | default('main') }}"
     build_type: "{{ build_type | default('Release') }}"
     clean_build: "{{ clean_build | default(false) }}"
@@ -149,21 +149,51 @@
       when: ansible_facts['os_family'] == "Debian"
       ignore_errors: yes
 
-    - name: Install Python requests package (CentOS/RHEL via pip with --break-system-packages)
+    - name: Check pip version (CentOS/RHEL)
+      command: /usr/bin/python3 -m pip --version
+      register: pip_version_check
+      changed_when: false
+      when: ansible_facts['os_family'] == "RedHat"
+      ignore_errors: yes
+      become: false
+
+    - name: Check if pip supports --break-system-packages (CentOS/RHEL)
+      command: /usr/bin/python3 -m pip install --help
+      register: pip_help
+      changed_when: false
+      when: ansible_facts['os_family'] == "RedHat"
+      ignore_errors: yes
+      become: false
+
+    - name: Install Python requests package (CentOS/RHEL via pip - new pip with --break-system-packages)
       pip:
         name: requests
         state: present
         extra_args: --break-system-packages
       become: yes
-      when: ansible_facts['os_family'] == "RedHat"
+      when: 
+        - ansible_facts['os_family'] == "RedHat"
+        - pip_help is succeeded
+        - "'--break-system-packages' in pip_help.stdout"
       ignore_errors: yes
 
-    - name: Install Python requests package (Ubuntu/Debian fallback - user install)
+    - name: Install Python requests package (CentOS/RHEL via pip - old pip without --break-system-packages)
+      pip:
+        name: requests
+        state: present
+      become: yes
+      when: 
+        - ansible_facts['os_family'] == "RedHat"
+        - pip_help is failed or (pip_help is succeeded and "'--break-system-packages' not in pip_help.stdout")
+      ignore_errors: yes
+
+    - name: Install Python requests package (Ubuntu/Debian fallback - with --break-system-packages)
       pip:
         name: requests
         state: present
         executable: pip3
-      become: false
+        extra_args: --break-system-packages
+      become: yes
       when: ansible_facts['os_family'] == "Debian"
       ignore_errors: yes
 
@@ -174,7 +204,7 @@
         owner: "{{ build_user }}"
         group: "{{ build_group }}"
         mode: '0755'
-      become: "{{ ansible_become | default(false) }}"
+      become: yes
       # On macOS, ensure staff group exists
       when: ansible_facts['os_family'] != "Darwin" or (ansible_facts['os_family'] == "Darwin" and build_group == "staff")
 
@@ -182,6 +212,7 @@
       file:
         path: "{{ project_dir }}/build"
         state: absent
+      become: yes
       when: clean_build | bool
 
     - name: Clone or update repository
@@ -191,6 +222,7 @@
         version: "{{ git_branch }}"
         force: yes
         update: yes
+      become: yes
       register: git_result
 
     - name: Display git update status
@@ -215,7 +247,7 @@
         owner: "{{ build_user }}"
         group: "{{ build_group }}"
         mode: '0755'
-      become: "{{ ansible_become | default(false) }}"
+      become: yes
       when: ansible_facts['os_family'] != "Darwin"
 
     - name: Create build directory (macOS)
@@ -225,7 +257,7 @@
         owner: "{{ build_user }}"
         group: "staff"
         mode: '0755'
-      become: "{{ ansible_become | default(false) }}"
+      become: yes
       when: ansible_facts['os_family'] == "Darwin"
 
     - name: Configure CMake
