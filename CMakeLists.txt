@@ -43,21 +43,32 @@ endif()
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Source files
-file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
-# Always exclude test files from main executable (tests are built separately)
-list(FILTER SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
-list(FILTER SOURCES EXCLUDE REGEX ".*tests/.*\\.cpp$")
+# Source files for core library (exclude main.cpp and test files)
+file(GLOB_RECURSE CORE_SOURCES "src/simple-tftpd/*.cpp" "src/simple-tftpd/*.c" "src/utils/*.cpp" "src/utils/*.c")
+file(GLOB_RECURSE CONFIG_SOURCES "src/simple-tftpd/config/*.cpp" "src/simple-tftpd/config/*.c")
+list(APPEND CORE_SOURCES ${CONFIG_SOURCES})
+# Always exclude test files
+list(FILTER CORE_SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
+list(FILTER CORE_SOURCES EXCLUDE REGEX ".*tests/.*\\.cpp$")
 file(GLOB_RECURSE HEADERS "include/*.hpp" "include/*.h")
 
-# Create executable
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+# Create core library (for tests and main executable)
+add_library(simple-tftpd-core STATIC ${CORE_SOURCES} ${HEADERS})
 
-# Link libraries
-target_link_libraries(${PROJECT_NAME} Threads::Threads)
+# Source files for main executable (only main.cpp)
+file(GLOB MAIN_SOURCES "src/main.cpp")
+
+# Create executable
+add_executable(${PROJECT_NAME} ${MAIN_SOURCES})
+
+# Link libraries for core library
+target_link_libraries(simple-tftpd-core PUBLIC Threads::Threads)
+
+# Link libraries for main executable
+target_link_libraries(${PROJECT_NAME} simple-tftpd-core)
 
 if(ENABLE_SSL)
-    target_link_libraries(${PROJECT_NAME} OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(simple-tftpd-core PUBLIC OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
 if(ENABLE_JSON)
@@ -65,17 +76,22 @@ if(ENABLE_JSON)
         # For static linking, find the static library directly
         find_library(JSONCPP_STATIC_LIB jsoncpp PATHS /opt/local/lib /usr/local/lib /usr/lib)
         if(JSONCPP_STATIC_LIB)
-            target_link_libraries(${PROJECT_NAME} ${JSONCPP_STATIC_LIB})
+            target_link_libraries(simple-tftpd-core PUBLIC ${JSONCPP_STATIC_LIB})
         else()
-            target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES})
+            target_link_libraries(simple-tftpd-core PUBLIC ${JSONCPP_LIBRARIES})
         endif()
     else()
-        target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES})
+        target_link_libraries(simple-tftpd-core PUBLIC ${JSONCPP_LIBRARIES})
     endif()
-    target_include_directories(${PROJECT_NAME} PRIVATE ${JSONCPP_INCLUDE_DIRS})
-    target_compile_options(${PROJECT_NAME} PRIVATE ${JSONCPP_CFLAGS_OTHER})
-    target_link_directories(${PROJECT_NAME} PRIVATE ${JSONCPP_LIBRARY_DIRS})
+    target_include_directories(simple-tftpd-core PUBLIC ${JSONCPP_INCLUDE_DIRS})
+    target_compile_options(simple-tftpd-core PRIVATE ${JSONCPP_CFLAGS_OTHER})
+    target_link_directories(simple-tftpd-core PRIVATE ${JSONCPP_LIBRARY_DIRS})
 endif()
+
+# Include directories for core library
+target_include_directories(simple-tftpd-core PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 # Compiler-specific options
 if(MSVC)
