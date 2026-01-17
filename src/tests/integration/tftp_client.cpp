@@ -30,6 +30,22 @@
 namespace simple_tftpd {
 namespace test {
 
+// Helper function to convert string mode to TftpMode enum
+static TftpMode stringToTftpMode(const std::string& mode) {
+    std::string lower_mode = mode;
+    std::transform(lower_mode.begin(), lower_mode.end(), lower_mode.begin(), ::tolower);
+    
+    if (lower_mode == "netascii") {
+        return TftpMode::NETASCII;
+    } else if (lower_mode == "octet") {
+        return TftpMode::OCTET;
+    } else if (lower_mode == "mail") {
+        return TftpMode::MAIL;
+    }
+    // Default to octet
+    return TftpMode::OCTET;
+}
+
 TftpClient::TftpClient(const std::string& server_addr, port_t server_port)
     : server_addr_(server_addr),
       server_port_(server_port),
@@ -270,9 +286,8 @@ std::vector<uint8_t> TftpClient::readFile(const std::string& filename,
     transfer_timeout_ = timeout_;
     
     // Create RRQ packet
-    TftpRequestPacket rrq(TftpOpcode::RRQ);
-    rrq.setFilename(filename);
-    rrq.setMode(mode);
+    TftpMode tftp_mode = stringToTftpMode(mode);
+    TftpRequestPacket rrq(TftpOpcode::RRQ, filename, tftp_mode);
     rrq.setOptions(options);
     
     std::vector<uint8_t> packet_data = rrq.serialize();
@@ -436,9 +451,8 @@ bool TftpClient::writeFile(const std::string& filename,
     transfer_timeout_ = timeout_;
     
     // Create WRQ packet
-    TftpRequestPacket wrq(TftpOpcode::WRQ);
-    wrq.setFilename(filename);
-    wrq.setMode(mode);
+    TftpMode tftp_mode = stringToTftpMode(mode);
+    TftpRequestPacket wrq(TftpOpcode::WRQ, filename, tftp_mode);
     wrq.setOptions(options);
     
     std::vector<uint8_t> packet_data = wrq.serialize();
