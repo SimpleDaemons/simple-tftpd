@@ -33,19 +33,35 @@ A lightweight, cross-platform TFTP (Trivial File Transfer Protocol) daemon writt
 
 ## License
 
-Copyright 2024 SimpleDaemons
+Simple TFTP Daemon uses a dual-licensing model:
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+### Production Edition (Apache 2.0) - Free & Open Source
 
-    http://www.apache.org/licenses/LICENSE-2.0
+This repository contains the **Production Edition**, which is licensed under the Apache License, Version 2.0. This edition includes all core TFTP protocol features, basic security, configuration management, and production monitoring - everything needed for production deployments.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+**License:** Apache License, Version 2.0  
+**Use:** Free for any use (commercial or non-commercial)  
+**Source:** This repository
+
+See [LICENSE](LICENSE) for the full Apache 2.0 license text.
+
+### Enterprise Edition (BSL) - Commercial License
+
+The **Enterprise Edition** includes advanced features such as:
+- Web management interface
+- REST API
+- SNMP integration
+- Advanced authentication & RBAC
+- Rate limiting & DDoS protection
+- Clustering & high availability
+- Plugin architecture
+- Enterprise support
+
+**License:** Business Source License (BSL)  
+**Use:** Commercial license required  
+**Contact:** licensing@simpledaemons.com
+
+For more information about the licensing strategy, see [docs/LICENSING_STRATEGY.md](docs/LICENSING_STRATEGY.md).
 
 ## Building
 
