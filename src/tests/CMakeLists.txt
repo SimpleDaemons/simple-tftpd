@@ -25,6 +25,10 @@ if(GTest_FOUND)
     set(UNIT_TEST_SOURCES
         test_main.cpp
         unit/packet_tests.cpp
+        unit/connection_tests.cpp
+        unit/config_tests.cpp
+        unit/security_tests.cpp
+        unit/monitoring_tests.cpp
         utils/test_helpers.cpp
     )
     
@@ -57,6 +61,27 @@ if(GTest_FOUND)
         TIMEOUT 300
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
+    
+    # Valgrind support for memory leak detection
+    if(ENABLE_VALGRIND)
+        find_program(VALGRIND_EXECUTABLE valgrind)
+        if(VALGRIND_EXECUTABLE)
+            add_test(NAME simple-tftpd-unit-tests-valgrind
+                COMMAND ${VALGRIND_EXECUTABLE} 
+                    --leak-check=full 
+                    --show-leak-kinds=all 
+                    --track-origins=yes 
+                    --error-exitcode=1
+                    $<TARGET_FILE:simple-tftpd-tests>)
+            set_tests_properties(simple-tftpd-unit-tests-valgrind PROPERTIES
+                TIMEOUT 600
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+            )
+            message(STATUS "Valgrind memory leak detection enabled for tests")
+        else()
+            message(WARNING "Valgrind not found. Install with: sudo apt-get install valgrind")
+        endif()
+    endif()
     
     # Integration test source files
     set(INTEGRATION_TEST_SOURCES

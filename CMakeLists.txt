@@ -25,6 +25,8 @@ option(ENABLE_PACKAGING "Enable package generation" ON)
 option(ENABLE_SSL "Enable SSL/TLS support" ON)
 option(ENABLE_JSON "Enable JSON support" ON)
 option(ENABLE_STATIC_LINKING "Enable static linking for self-contained binaries" OFF)
+option(ENABLE_SANITIZER "Enable AddressSanitizer for memory leak detection" OFF)
+option(ENABLE_VALGRIND "Enable Valgrind support in tests" OFF)
 
 # Find required packages
 find_package(Threads REQUIRED)

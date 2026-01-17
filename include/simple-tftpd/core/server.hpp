@@ -18,6 +18,7 @@
 
 #include "simple-tftpd/utils/platform.hpp"
 #include "simple-tftpd/core/connection.hpp"
+#include "simple-tftpd/core/monitoring.hpp"
 #include "simple-tftpd/config/config.hpp"
 #include "simple-tftpd/utils/logger.hpp"
 #include <memory>
@@ -30,6 +31,11 @@
 #include <functional>
 
 namespace simple_tftpd {
+
+// Forward declarations
+class Monitoring;
+struct HealthCheckResult;
+struct ServerMetrics;
 
 /**
  * @brief TFTP server statistics
@@ -139,6 +145,30 @@ public:
     void resetStats();
     
     /**
+     * @brief Perform health check
+     * @return Health check result
+     */
+    HealthCheckResult performHealthCheck() const;
+    
+    /**
+     * @brief Get server metrics
+     * @return Server metrics
+     */
+    ServerMetrics getMetrics() const;
+    
+    /**
+     * @brief Get metrics as JSON string
+     * @return JSON representation of metrics
+     */
+    std::string getMetricsJson() const;
+    
+    /**
+     * @brief Get health check as JSON string
+     * @return JSON representation of health check
+     */
+    std::string getHealthCheckJson() const;
+    
+    /**
      * @brief Send packet to client
      * @param packet_data Packet data
      * @param packet_size Size of packet data
@@ -221,6 +251,8 @@ private:
     
     TftpServerStats stats_;
     mutable std::mutex stats_mutex_;
+    
+    std::unique_ptr<Monitoring> monitoring_;
     
     std::function<void(TftpConnectionState, const std::string&)> connection_callback_;
     std::function<void(const std::string&, const std::string&)> server_callback_;

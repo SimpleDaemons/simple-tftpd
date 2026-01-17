@@ -15,6 +15,7 @@
  */
 
 #include "simple-tftpd/core/server.hpp"
+#include "simple-tftpd/core/monitoring.hpp"
 #include <iostream>
 #include <sstream>
 #include <cstring>
@@ -30,7 +31,8 @@ TftpServer::TftpServer(std::shared_ptr<TftpConfig> config, std::shared_ptr<Logge
       listen_address_(config->getListenAddress()),
       listen_port_(config->getListenPort()),
       ipv6_enabled_(config->isIpv6Enabled()),
-      config_file_path_("") {
+      config_file_path_(""),
+      monitoring_(std::make_unique<Monitoring>()) {
     
     stats_.start_time = std::chrono::steady_clock::now();
 }
@@ -223,6 +225,47 @@ void TftpServer::resetStats() {
 std::chrono::seconds TftpServer::getUptime() const {
     auto now = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::seconds>(now - stats_.start_time);
+}
+
+HealthCheckResult TftpServer::performHealthCheck() const {
+    if (!monitoring_) {
+        HealthCheckResult result;
+        result.status = HealthStatus::UNHEALTHY;
+        result.message = "Monitoring not initialized";
+        return result;
+    }
+    return monitoring_->performHealthCheck();
+}
+
+ServerMetrics TftpServer::getMetrics() const {
+    if (!monitoring_) {
+        return ServerMetrics();
+    }
+    
+    // Update monitoring with current server stats
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    monitoring_->updateActiveConnections(stats_.active_connections);
+    
+    return monitoring_->getMetrics();
+}
+
+std::string TftpServer::getMetricsJson() const {
+    if (!monitoring_) {
+        return "{\"error\": \"Monitoring not initialized\"}";
+    }
+    
+    // Update monitoring with current server stats
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    monitoring_->updateActiveConnections(stats_.active_connections);
+    
+    return monitoring_->getMetricsJson();
+}
+
+std::string TftpServer::getHealthCheckJson() const {
+    if (!monitoring_) {
+        return "{\"status\": \"unhealthy\", \"message\": \"Monitoring not initialized\"}";
+    }
+    return monitoring_->getHealthCheckJson();
 }
 
 void TftpServer::setConnectionCallback(std::function<void(TftpConnectionState, const std::string&)> callback) {
@@ -523,6 +566,19 @@ void TftpServer::updateStats(TftpConnectionState connection_state, size_t bytes_
     
     if (bytes_transferred > 0) {
         stats_.total_bytes_transferred += bytes_transferred;
+    }
+    
+    // Update monitoring
+    if (monitoring_) {
+        bool success = (connection_state == TftpConnectionState::COMPLETED);
+        uint64_t duration_ms = 0; // Could calculate from connection start time
+        monitoring_->recordTransfer(bytes_transferred, success, duration_ms);
+        monitoring_->recordConnection(success);
+        monitoring_->updateActiveConnections(stats_.active_connections);
+        
+        if (connection_state == TftpConnectionState::ERROR) {
+            monitoring_->recordError();
+        }
     }
 }
 
