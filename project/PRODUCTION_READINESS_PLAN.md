@@ -85,8 +85,10 @@
 
 1. **Memory Leak Detection** 🔄 PARTIAL
    - [x] Add Valgrind/AddressSanitizer support (CMake options added)
-   - [ ] Run leak detection on all tests
-   - [ ] Fix identified leaks
+   - [x] Create execution scripts (run-memory-tests.sh)
+   - [x] Create documentation (MEMORY_LEAK_DETECTION.md)
+   - [ ] Run leak detection on all tests ⏳ (scripts ready, needs execution)
+   - [ ] Fix identified leaks ⏳ (pending test results)
    - [x] Add memory usage monitoring (Monitoring class includes memory metrics)
 
 2. **Resource Management** 🔄 PARTIAL
@@ -147,10 +149,13 @@
    - [x] High-throughput tests (BasicThroughput test exists)
    - [ ] Stress tests ⏳ (framework exists, needs execution)
    - [ ] Long-running stability tests ⏳ (needs implementation)
+   - [x] Execution scripts created (run-performance-tests.sh)
+   - [x] Documentation created (PERFORMANCE_TESTING.md)
    - **File:** `src/tests/integration/performance_tests.cpp` (BasicThroughput test)
 
 2. **Performance Benchmarks** 🔄 PARTIAL
    - [x] Transfer speed benchmarks (BasicThroughput, WindowedTransferPerformance, BlksizePerformance tests)
+   - [x] Execution scripts and documentation ready
    - [ ] Latency measurements ⏳ (needs specific test)
    - [ ] Resource usage profiling ⏳ (needs specific test)
    - [ ] Scalability tests ⏳ (needs implementation)
