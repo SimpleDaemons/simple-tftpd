@@ -358,18 +358,25 @@ main() {
     # Process each tag
     local success_count=0
     local fail_count=0
+    local total_tags=$(echo "$TAGS" | wc -l | tr -d ' ')
+    local current=0
     
-    echo "$TAGS" | while read tag; do
+    while IFS= read -r tag; do
+        ((current++))
+        print_info "Processing tag $current of $total_tags: $tag"
+        
         if process_version_tag "$tag"; then
             ((success_count++))
         else
             ((fail_count++))
         fi
         
-        echo ""
-        print_info "Press Enter to continue to next tag, or Ctrl+C to stop..."
-        read
-    done
+        if [ $current -lt $total_tags ]; then
+            echo ""
+            print_info "Press Enter to continue to next tag, or Ctrl+C to stop..."
+            read
+        fi
+    done <<< "$TAGS"
     
     echo ""
     print_header
