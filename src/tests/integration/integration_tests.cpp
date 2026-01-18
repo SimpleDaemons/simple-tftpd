@@ -295,7 +295,7 @@ TEST_F(IntegrationTestFixture, MaxFileSizeLimit) {
     // Try to write file larger than limit
     std::vector<uint8_t> large_data = helpers_->generateRandomData(2048); // 2KB
     client_ = std::make_unique<TftpClient>("127.0.0.1", test_port_);
-    bool success = client_->writeFile("too_large.bin", large_data, "octet");
+    client_->writeFile("too_large.bin", large_data, "octet");
     
     // Should fail or be truncated (implementation dependent)
     // For now, just verify it doesn't crash
