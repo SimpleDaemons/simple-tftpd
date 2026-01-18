@@ -243,21 +243,71 @@ if(ENABLE_PACKAGING)
         set(CPACK_RPM_PACKAGE_CONFLICTS "ntp")
         set(CPACK_RPM_PACKAGE_PROVIDES "${PROJECT_NAME}")
         
-        # Set package architecture
-        if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-            set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-            set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
-        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-            set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
-            set(CPACK_RPM_PACKAGE_ARCHITECTURE "aarch64")
-        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "armv7l")
-            set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
-            set(CPACK_RPM_PACKAGE_ARCHITECTURE "armv7hl")
-        endif()
+    # Set package architecture and determine architecture string
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+        set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
+        set(PACKAGE_ARCH "amd64")
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
+        set(CPACK_RPM_PACKAGE_ARCHITECTURE "aarch64")
+        set(PACKAGE_ARCH "arm64")
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "armv7l")
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
+        set(CPACK_RPM_PACKAGE_ARCHITECTURE "armv7hl")
+        set(PACKAGE_ARCH "armhf")
+    else()
+        set(PACKAGE_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
     endif()
     
-    # Common package settings
-    set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}")
+    # Determine distribution/platform identifier
+    if(APPLE)
+        # Detect Intel vs Apple Silicon
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+            set(PLATFORM_ID "macos-apple")
+        else()
+            set(PLATFORM_ID "macos-intel")
+        endif()
+    elseif(UNIX)
+        # Try to detect Linux distribution
+        if(EXISTS "/etc/os-release")
+            file(READ "/etc/os-release" OS_RELEASE)
+            if(OS_RELEASE MATCHES "ID=([^\n]+)")
+                string(REGEX REPLACE ".*ID=([^\n]+).*" "\\1" DISTRO_ID "${OS_RELEASE}")
+                string(STRIP "${DISTRO_ID}" DISTRO_ID)
+                string(TOLOWER "${DISTRO_ID}" DISTRO_ID)
+                
+                # Map common distro IDs to package names
+                if(DISTRO_ID MATCHES "debian|ubuntu")
+                    set(PLATFORM_ID "linux-debian")
+                elseif(DISTRO_ID MATCHES "centos|rhel|fedora|rocky|almalinux")
+                    set(PLATFORM_ID "linux-generic")  # Use "generic" for RPM-based
+                else()
+                    set(PLATFORM_ID "linux-generic")
+                endif()
+            else()
+                set(PLATFORM_ID "linux-generic")
+            endif()
+        else()
+            set(PLATFORM_ID "linux-generic")
+        endif()
+    else()
+        set(PLATFORM_ID "${PLATFORM_NAME}")
+    endif()
+endif()
+    
+    # Set package file names with standardized format: {project}-{version}-{platform}-{arch}.{ext}
+    if(APPLE)
+        # macOS packages: simple-tftpd-0.2.1-macos-intel.dmg / .pkg
+        set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}")
+    elseif(UNIX)
+        # Linux packages: simple-tftpd-0.2.1-linux-debian-amd64.deb / .rpm
+        set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}-${PACKAGE_ARCH}")
+    else()
+        # Windows and others
+        set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}-${PACKAGE_ARCH}")
+    endif()
+    
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}")
     
     # Component installation
