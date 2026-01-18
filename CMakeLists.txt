@@ -3,7 +3,7 @@
 # Copyright 2024 SimpleDaemons
 
 cmake_minimum_required(VERSION 3.16)
-project(simple-tftpd VERSION 0.1.0 LANGUAGES CXX DESCRIPTION "A lightweight, cross-platform TFTP daemon")
+project(simple-tftpd VERSION 0.2.1 LANGUAGES CXX DESCRIPTION "A lightweight, cross-platform TFTP daemon")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
