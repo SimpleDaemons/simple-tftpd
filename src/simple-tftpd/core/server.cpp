@@ -698,7 +698,23 @@ bool TftpServer::bindSocket() {
     }
     
     if (bind(server_socket_, reinterpret_cast<struct sockaddr*>(&addr4), sizeof(addr4)) < 0) {
-        logEvent(LogLevel::ERROR, "Failed to bind IPv4 socket: " + std::to_string(SOCKET_ERROR_CODE));
+        int error_code = SOCKET_ERROR_CODE;
+        std::string error_msg = "Failed to bind IPv4 socket: " + std::to_string(error_code);
+        
+        // Provide helpful error messages for common issues
+        if (error_code == 13) {  // EACCES - Permission denied
+            if (listen_port_ < 1024) {
+                error_msg += " (Permission denied - ports below 1024 require root privileges)";
+            } else {
+                error_msg += " (Permission denied - check firewall/security settings)";
+            }
+        } else if (error_code == 98 || error_code == 48) {  // EADDRINUSE - Address already in use
+            error_msg += " (Port already in use)";
+        } else if (error_code == 99) {  // EADDRNOTAVAIL - Address not available
+            error_msg += " (Address not available)";
+        }
+        
+        logEvent(LogLevel::ERROR, error_msg);
         return false;
     }
     
