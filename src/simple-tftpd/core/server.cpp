@@ -631,47 +631,78 @@ bool TftpServer::setSocketOptions() {
 
 bool TftpServer::bindSocket() {
     if (ipv6_enabled_) {
-        // IPv6 binding
+        // Try IPv6 binding first
         struct sockaddr_in6 addr6;
         memset(&addr6, 0, sizeof(addr6));
         addr6.sin6_family = AF_INET6;
         addr6.sin6_port = htons(listen_port_);
         
+        bool ipv6_address_valid = true;
         if (listen_address_ == "0.0.0.0" || listen_address_ == "::") {
             std::memset(&addr6.sin6_addr, 0, sizeof(addr6.sin6_addr));
         } else {
             if (inet_pton(AF_INET6, listen_address_.c_str(), &addr6.sin6_addr) != 1) {
-                logEvent(LogLevel::ERROR, "Invalid IPv6 address: " + listen_address_);
-                return false;
+                logEvent(LogLevel::WARNING, "Invalid IPv6 address: " + listen_address_ + ", falling back to IPv4");
+                ipv6_address_valid = false;
+                ipv6_enabled_ = false;
             }
         }
         
-        if (bind(server_socket_, reinterpret_cast<struct sockaddr*>(&addr6), sizeof(addr6)) < 0) {
-            logEvent(LogLevel::ERROR, "Failed to bind IPv6 socket: " + std::to_string(SOCKET_ERROR_CODE));
-            return false;
-        }
-    } else {
-        // IPv4 binding
-        struct sockaddr_in addr4;
-        memset(&addr4, 0, sizeof(addr4));
-        addr4.sin_family = AF_INET;
-        addr4.sin_port = htons(listen_port_);
-        
-        if (listen_address_ == "0.0.0.0") {
-            addr4.sin_addr.s_addr = INADDR_ANY;
+        // Try to bind IPv6 if address is valid
+        if (ipv6_address_valid) {
+            if (bind(server_socket_, reinterpret_cast<struct sockaddr*>(&addr6), sizeof(addr6)) >= 0) {
+                logEvent(LogLevel::INFO, "Successfully bound IPv6 socket");
+                return true;
+            } else {
+                // IPv6 binding failed, fall back to IPv4
+                logEvent(LogLevel::WARNING, "Failed to bind IPv6 socket (error " + std::to_string(SOCKET_ERROR_CODE) + "), falling back to IPv4");
+                ipv6_enabled_ = false;
+                // Close IPv6 socket and create IPv4 socket
+                closeSocket();
+                if (!initializeSocket()) {
+                    logEvent(LogLevel::ERROR, "Failed to create IPv4 socket for fallback");
+                    return false;
+                }
+                // Fall through to IPv4 binding
+            }
         } else {
-            if (inet_pton(AF_INET, listen_address_.c_str(), &addr4.sin_addr) != 1) {
-                logEvent(LogLevel::ERROR, "Invalid IPv4 address: " + listen_address_);
+            // Invalid IPv6 address, close socket and create IPv4 socket
+            closeSocket();
+            if (!initializeSocket()) {
+                logEvent(LogLevel::ERROR, "Failed to create IPv4 socket for fallback");
                 return false;
             }
-        }
-        
-        if (bind(server_socket_, reinterpret_cast<struct sockaddr*>(&addr4), sizeof(addr4)) < 0) {
-            logEvent(LogLevel::ERROR, "Failed to bind IPv4 socket: " + std::to_string(SOCKET_ERROR_CODE));
-            return false;
         }
     }
     
+    // IPv4 binding (either explicitly requested or as fallback)
+    struct sockaddr_in addr4;
+    memset(&addr4, 0, sizeof(addr4));
+    addr4.sin_family = AF_INET;
+    addr4.sin_port = htons(listen_port_);
+    
+    if (listen_address_ == "0.0.0.0" || listen_address_ == "::") {
+        addr4.sin_addr.s_addr = INADDR_ANY;
+    } else {
+        // Convert IPv6 "::" to IPv4 "0.0.0.0" if needed
+        std::string bind_addr = listen_address_;
+        if (bind_addr == "::") {
+            bind_addr = "0.0.0.0";
+            addr4.sin_addr.s_addr = INADDR_ANY;
+        } else {
+            if (inet_pton(AF_INET, bind_addr.c_str(), &addr4.sin_addr) != 1) {
+                logEvent(LogLevel::ERROR, "Invalid IPv4 address: " + bind_addr);
+                return false;
+            }
+        }
+    }
+    
+    if (bind(server_socket_, reinterpret_cast<struct sockaddr*>(&addr4), sizeof(addr4)) < 0) {
+        logEvent(LogLevel::ERROR, "Failed to bind IPv4 socket: " + std::to_string(SOCKET_ERROR_CODE));
+        return false;
+    }
+    
+    logEvent(LogLevel::INFO, "Successfully bound IPv4 socket");
     return true;
 }
 
