@@ -329,8 +329,69 @@ process_version_tag() {
     return 0
 }
 
+# Show usage
+show_usage() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Build packages and create GitHub releases for version tags.
+
+OPTIONS:
+    -h, --help              Show this help message
+    -t, --tag TAG           Build packages for a specific tag only
+    -a, --all               Build packages for all version tags (default)
+    -y, --yes               Skip confirmation prompts (non-interactive)
+    -l, --list              List available version tags and exit
+
+EXAMPLES:
+    $0                      # Build all tags (interactive)
+    $0 --all                # Build all tags (interactive)
+    $0 --tag v0.2.1         # Build only v0.2.1
+    $0 --all --yes          # Build all tags without prompts
+    $0 --list               # List available tags
+
+EOF
+}
+
 # Main function
 main() {
+    local SELECTED_TAG=""
+    local BUILD_ALL=true
+    local SKIP_CONFIRM=false
+    local LIST_ONLY=false
+    
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_usage
+                exit 0
+                ;;
+            -t|--tag)
+                SELECTED_TAG="$2"
+                BUILD_ALL=false
+                shift 2
+                ;;
+            -a|--all)
+                BUILD_ALL=true
+                shift
+                ;;
+            -y|--yes)
+                SKIP_CONFIRM=true
+                shift
+                ;;
+            -l|--list)
+                LIST_ONLY=true
+                shift
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_usage
+                exit 1
+                ;;
+        esac
+    done
+    
     print_header
     
     check_prerequisites
@@ -344,24 +405,55 @@ main() {
         exit 1
     fi
     
-    print_info "Found version tags:"
-    echo "$TAGS" | while read tag; do
-        echo "  - $tag"
-    done
+    # List tags and exit if requested
+    if [ "$LIST_ONLY" = true ]; then
+        print_info "Available version tags:"
+        echo "$TAGS" | while read tag; do
+            echo "  - $tag"
+        done
+        exit 0
+    fi
+    
+    # Determine which tags to process
+    if [ "$BUILD_ALL" = false ] && [ -n "$SELECTED_TAG" ]; then
+        # Verify the selected tag exists
+        if ! echo "$TAGS" | grep -q "^${SELECTED_TAG}$"; then
+            print_error "Tag '$SELECTED_TAG' not found"
+            print_info "Available tags:"
+            echo "$TAGS" | while read tag; do
+                echo "  - $tag"
+            done
+            exit 1
+        fi
+        TAGS_TO_BUILD="$SELECTED_TAG"
+        print_info "Building packages for tag: $SELECTED_TAG"
+    else
+        TAGS_TO_BUILD="$TAGS"
+        print_info "Found version tags:"
+        echo "$TAGS_TO_BUILD" | while read tag; do
+            echo "  - $tag"
+        done
+    fi
     echo ""
     
-    # Ask for confirmation
-    read -p "Build packages and create releases for all tags? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_info "Cancelled by user"
-        exit 0
+    # Ask for confirmation unless --yes is used
+    if [ "$SKIP_CONFIRM" = false ]; then
+        if [ "$BUILD_ALL" = true ]; then
+            read -p "Build packages and create releases for all tags? (y/N): " -n 1 -r
+        else
+            read -p "Build packages and create release for tag '$SELECTED_TAG'? (y/N): " -n 1 -r
+        fi
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_info "Cancelled by user"
+            exit 0
+        fi
     fi
     
     # Process each tag
     local success_count=0
     local fail_count=0
-    local total_tags=$(echo "$TAGS" | wc -l | tr -d ' ')
+    local total_tags=$(echo "$TAGS_TO_BUILD" | wc -l | tr -d ' ')
     local current=0
     
     while IFS= read -r tag; do
@@ -374,12 +466,12 @@ main() {
             ((fail_count++))
         fi
         
-        if [ $current -lt $total_tags ]; then
+        if [ $current -lt $total_tags ] && [ "$SKIP_CONFIRM" = false ]; then
             echo ""
             print_info "Press Enter to continue to next tag, or Ctrl+C to stop..."
             read
         fi
-    done <<< "$TAGS"
+    done <<< "$TAGS_TO_BUILD"
     
     echo ""
     print_header
