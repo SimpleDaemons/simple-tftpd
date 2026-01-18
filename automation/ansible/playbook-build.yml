@@ -254,6 +254,14 @@
       changed_when: false
       ignore_errors: yes
 
+    - name: Force pull latest changes
+      command: git fetch origin && git reset --hard origin/{{ git_branch }}
+      args:
+        chdir: "{{ project_dir }}"
+      become_user: "{{ build_user }}"
+      become: yes
+      when: git_branch is defined
+
     - name: Display git update status
       debug:
         msg: "Repository {{ 'updated' if git_result.changed else 'already up to date' }}"
