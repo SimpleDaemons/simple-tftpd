@@ -264,7 +264,9 @@ EOF
         print_info "Uploading packages from $release_dir..."
         local uploaded=0
         
-        for package in "$release_dir"/*.{deb,rpm,dmg,pkg,tar.gz,zip} 2>/dev/null; do
+        # Use find to locate packages, handling cases where no files match
+        shopt -s nullglob
+        for package in "$release_dir"/*.{deb,rpm,dmg,pkg} "$release_dir"/*.tar.gz "$release_dir"/*.zip; do
             if [ -f "$package" ]; then
                 print_info "Uploading: $(basename "$package")"
                 if gh release upload "$tag" "$package" --repo "$REPO_NAME" --clobber; then
@@ -275,6 +277,7 @@ EOF
                 fi
             fi
         done
+        shopt -u nullglob
         
         if [ $uploaded -gt 0 ]; then
             print_success "Uploaded $uploaded package(s)"
