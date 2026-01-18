@@ -598,7 +598,8 @@ bool TftpServer::isValidAddress(const std::string& address) const {
 }
 
 bool TftpServer::isValidPort(port_t port) const {
-    return port > 0 && port <= 65535;
+    // port_t is uint16_t, so it can only be 0-65535, no need to check upper bound
+    return port > 0;
 }
 
 bool TftpServer::setSocketOptions() {
