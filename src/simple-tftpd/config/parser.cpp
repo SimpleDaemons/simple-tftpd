@@ -161,7 +161,8 @@ std::string TftpConfig::toJson() const {
 
 bool TftpConfig::validate() const {
     // Basic validation
-    if (listen_port_ == 0 || listen_port_ > 65535) {
+    // port_t is uint16_t, so it can only be 0-65535, no need to check upper bound
+    if (listen_port_ == 0) {
         return false;
     }
     

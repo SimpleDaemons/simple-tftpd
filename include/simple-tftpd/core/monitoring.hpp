@@ -185,10 +185,10 @@ public:
 
 private:
     mutable std::mutex metrics_mutex_;
-    ServerMetrics metrics_;
+    mutable ServerMetrics metrics_;  // Mutable to allow modification in const methods
     std::chrono::steady_clock::time_point start_time_;
     
-    void updateUptime();
+    void updateUptime() const;
     void updateSystemMetrics();
 };
 
