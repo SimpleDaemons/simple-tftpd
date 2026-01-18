@@ -148,8 +148,9 @@ if(UNIX AND NOT APPLE)
     )
 elseif(APPLE)
     # Install launchd plist file
+    # Use relative path for package creation - CPack will handle proper installation path
     install(FILES deployment/launchd/com.simpledaemons.simple-tftpd.plist
-        DESTINATION /Library/LaunchDaemons
+        DESTINATION Library/LaunchDaemons
     )
 endif()
 

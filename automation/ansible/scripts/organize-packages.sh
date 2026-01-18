@@ -17,7 +17,14 @@ NC='\033[0m' # No Color
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-VERSION=$(grep '^VERSION =' "$PROJECT_ROOT/Makefile" 2>/dev/null | cut -d' ' -f3 || echo "0.2.0")
+# Try to get version from CMakeLists.txt first (source of truth), fallback to Makefile, then default
+VERSION=$(grep '^project.*VERSION' "$PROJECT_ROOT/CMakeLists.txt" 2>/dev/null | sed -n 's/.*VERSION \([0-9.]*\).*/\1/p' | head -1)
+if [[ -z "$VERSION" ]]; then
+    VERSION=$(grep '^VERSION =' "$PROJECT_ROOT/Makefile" 2>/dev/null | cut -d' ' -f3)
+fi
+if [[ -z "$VERSION" ]]; then
+    VERSION="0.2.1"
+fi
 DIST_DIR="$PROJECT_ROOT/dist"
 BUILD_DIR="$PROJECT_ROOT/build"
 CENTRAL_RELEASE_DIR="$DIST_DIR/centralized"
