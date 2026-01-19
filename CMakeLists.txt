@@ -89,7 +89,7 @@ if(ENABLE_JSON)
 endif()
 
 # Include directories for core library
-target_include_directories(simple-tftpd-core PUBLIC 
+target_include_directories(simple-tftpd-core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
@@ -152,7 +152,7 @@ elseif(APPLE)
     install(FILES deployment/launchd/com.simpledaemons.simple-tftpd.plist
         DESTINATION Library/LaunchDaemons
     )
-    
+
     # Install docs directory for macOS DMG/PKG packages
     install(DIRECTORY docs/
         DESTINATION docs
@@ -177,7 +177,7 @@ endif()
 
 # Package generation
 if(ENABLE_PACKAGING)
-    
+
     # Package information
     set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
     set(CPACK_PACKAGE_VENDOR "SimpleDaemons")
@@ -190,7 +190,7 @@ if(ENABLE_PACKAGING)
     set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
     set(CPACK_PACKAGE_CONTACT "info@simpledaemons.com")
     set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/simpledaemons/${PROJECT_NAME}")
-    
+
     # Package files
     # Use .txt files for macOS PKG (required format), .md for other platforms
     # All packaging resources are organized in the packaging/ directory
@@ -202,12 +202,12 @@ if(ENABLE_PACKAGING)
         set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
         set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
     endif()
-    
+
     # Platform-specific package settings
     if(WIN32)
         # Windows MSI and ZIP packages
         set(CPACK_GENERATOR "WIX;ZIP")
-        
+
         # WIX (MSI) settings
         set(CPACK_WIX_PRODUCT_GUID "12345678-1234-1234-1234-123456789012")
         set(CPACK_WIX_UPGRADE_GUID "87654321-4321-4321-4321-210987654321")
@@ -216,35 +216,35 @@ if(ENABLE_PACKAGING)
         set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT "https://github.com/simpledaemons/${PROJECT_NAME}")
         set(CPACK_WIX_PROPERTY_ARPNOREPAIR "1")
         set(CPACK_WIX_PROPERTY_ARPNOMODIFY "1")
-        
+
         # ZIP package settings
         set(CPACK_ZIP_COMPONENT_INSTALL ON)
-        
+
     elseif(APPLE)
         # macOS DMG and PKG packages
         set(CPACK_GENERATOR "DragNDrop;productbuild")
-        
+
         # DMG settings
         set(CPACK_DMG_VOLUME_NAME "${PROJECT_NAME}")
         set(CPACK_DMG_FORMAT "UDBZ")
-        
+
         # Optional DMG customization files (only set if they exist)
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/dmg_background.png")
             set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/assets/dmg_background.png")
         endif()
-        
+
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/DS_Store")
             set(CPACK_DMG_DS_STORE "${CMAKE_CURRENT_SOURCE_DIR}/assets/DS_Store")
         endif()
-        
+
         # PKG settings
         set(CPACK_PRODUCTBUILD_IDENTIFIER "com.simpledaemons.${PROJECT_NAME}")
         set(CPACK_PRODUCTBUILD_PACKAGE_NAME "${PROJECT_NAME}")
-        
+
     else()
         # Linux DEB and RPM packages
         set(CPACK_GENERATOR "DEB;RPM")
-        
+
         # DEB package settings
         set(CPACK_DEBIAN_PACKAGE_MAINTAINER "SimpleDaemons <info@simpledaemons.com>")
         set(CPACK_DEBIAN_PACKAGE_SECTION "net")
@@ -257,7 +257,7 @@ if(ENABLE_PACKAGING)
         set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/simpledaemons/${PROJECT_NAME}")
         set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${PROJECT_DESCRIPTION}")
         set(CPACK_DEBIAN_PACKAGE_LONG_DESCRIPTION "${PROJECT_DESCRIPTION}")
-        
+
         # RPM package settings
         set(CPACK_RPM_PACKAGE_LICENSE "Apache-2.0")
         set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
@@ -267,7 +267,8 @@ if(ENABLE_PACKAGING)
         set(CPACK_RPM_PACKAGE_SUGGESTS "systemd")
         set(CPACK_RPM_PACKAGE_CONFLICTS "ntp")
         set(CPACK_RPM_PACKAGE_PROVIDES "${PROJECT_NAME}")
-        
+    endif()
+
     # Set package architecture and determine architecture string
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
@@ -284,15 +285,33 @@ if(ENABLE_PACKAGING)
     else()
         set(PACKAGE_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
     endif()
-    
+
     # Determine distribution/platform identifier for package naming
     if(APPLE)
         # Detect Intel vs Apple Silicon for macOS
-        if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+        # Try multiple methods to detect architecture
+        set(PLATFORM_ID "macos-intel")  # Default fallback
+        if(CMAKE_OSX_ARCHITECTURES)
+            if(CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+                set(PLATFORM_ID "macos-apple")
+            endif()
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64|ARM64")
             set(PLATFORM_ID "macos-apple")
         else()
-            set(PLATFORM_ID "macos-intel")
+            # Fallback: use uname to detect architecture
+            execute_process(
+                COMMAND uname -m
+                OUTPUT_VARIABLE UNAME_M
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET
+            )
+            if(UNAME_M MATCHES "arm64|aarch64")
+                set(PLATFORM_ID "macos-apple")
+            else()
+                set(PLATFORM_ID "macos-intel")
+            endif()
         endif()
+        message(STATUS "Detected macOS platform: ${PLATFORM_ID}")
     elseif(UNIX)
         # Try to detect Linux distribution for proper naming
         set(PLATFORM_ID "linux-generic")  # Default for RPM-based
@@ -303,7 +322,7 @@ if(ENABLE_PACKAGING)
                 string(STRIP "${DISTRO_ID}" DISTRO_ID)
                 string(TOLOWER "${DISTRO_ID}" DISTRO_ID)
                 string(REPLACE "\"" "" DISTRO_ID "${DISTRO_ID}")
-                
+
                 # Map common distro IDs to package names
                 if(DISTRO_ID MATCHES "debian|ubuntu")
                     set(PLATFORM_ID "linux-debian")
@@ -313,18 +332,20 @@ if(ENABLE_PACKAGING)
     else()
         set(PLATFORM_ID "${PLATFORM_NAME}")
     endif()
-endif()
-    
+
     # Set package file names with standardized format: {project}-{version}-{platform}-{distro}-{arch}.{ext}
     # Format matches: simple-tftpd-0.2.1-linux-debian-amd64.deb
     if(APPLE)
         # macOS packages: simple-tftpd-0.2.1-macos-intel.dmg / .pkg
         set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}")
+        # Explicitly set generator-specific file names for macOS
+        set(CPACK_DMG_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}")
+        set(CPACK_PRODUCTBUILD_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}")
     elseif(UNIX)
         # Linux packages: simple-tftpd-0.2.1-linux-debian-amd64.deb / .rpm
         # CPack automatically adds architecture for DEB/RPM, so we set the base name
         set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}-${PACKAGE_ARCH}")
-        
+
         # Override DEB and RPM file names to match our format
         # CPack format: {CPACK_PACKAGE_FILE_NAME}_{CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb
         # We want: {name}-{version}-{platform}-{arch}.deb (architecture already in CPACK_PACKAGE_FILE_NAME)
@@ -335,27 +356,27 @@ endif()
         # Windows and others
         set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_NAME}-${PACKAGE_ARCH}")
     endif()
-    
+
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}")
-    
+
     # Component installation
     set(CPACK_COMPONENT_APPLICATIONS_DISPLAY_NAME "Application")
     set(CPACK_COMPONENT_APPLICATIONS_DESCRIPTION "The ${PROJECT_NAME} executable and related files")
-    
+
     set(CPACK_COMPONENT_DEVELOPMENT_DISPLAY_NAME "Development")
     set(CPACK_COMPONENT_DEVELOPMENT_DESCRIPTION "Header files for developing with ${PROJECT_NAME}")
-    
+
     set(CPACK_COMPONENT_CONFIG_DISPLAY_NAME "Configuration")
     set(CPACK_COMPONENT_CONFIG_DESCRIPTION "Configuration files and examples")
-    
+
     set(CPACK_COMPONENT_SERVICE_DISPLAY_NAME "Service")
     set(CPACK_COMPONENT_SERVICE_DESCRIPTION "System service files")
-    
+
     # Set component dependencies
     set(CPACK_COMPONENT_DEVELOPMENT_DEPENDS applications)
     set(CPACK_COMPONENT_CONFIG_DEPENDS applications)
     set(CPACK_COMPONENT_SERVICE_DEPENDS applications)
-    
+
     # Source package generation
     set(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
     set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-src")
@@ -387,7 +408,7 @@ endif()
         "*.exp"
         "*.lib"
     )
-    
+
     # Include CPack configuration
     include(CPack)
 endif()

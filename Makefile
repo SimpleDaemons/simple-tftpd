@@ -172,9 +172,21 @@ ifeq ($(PLATFORM),macos)
 	@mkdir -p $(DIST_DIR)
 	cd $(BUILD_DIR) && cpack -G DragNDrop
 	cd $(BUILD_DIR) && cpack -G productbuild
-	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/ 2>/dev/null || true
-	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg $(DIST_DIR)/ 2>/dev/null || true
+	@echo "Moving packages to $(DIST_DIR)..."
+	@if ls $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg 1> /dev/null 2>&1; then \
+		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/ && \
+		echo "  DMG package moved"; \
+	else \
+		echo "  Warning: No DMG package found"; \
+	fi
+	@if ls $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg 1> /dev/null 2>&1; then \
+		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg $(DIST_DIR)/ && \
+		echo "  PKG package moved"; \
+	else \
+		echo "  Warning: No PKG package found"; \
+	fi
 	@echo "macOS packages created: DMG and PKG"
+	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.* 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
 else ifeq ($(PLATFORM),linux)
 	@echo "Building Linux packages..."
 	@mkdir -p $(DIST_DIR)
