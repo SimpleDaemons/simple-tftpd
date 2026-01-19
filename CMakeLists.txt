@@ -152,6 +152,15 @@ elseif(APPLE)
     install(FILES deployment/launchd/com.simpledaemons.simple-tftpd.plist
         DESTINATION Library/LaunchDaemons
     )
+    
+    # Install docs directory for macOS DMG/PKG packages
+    install(DIRECTORY docs/
+        DESTINATION docs
+        FILES_MATCHING
+        PATTERN "*.md"
+        PATTERN "*.txt"
+        PATTERN "*.html"
+    )
 endif()
 
 # Tests
@@ -183,8 +192,15 @@ if(ENABLE_PACKAGING)
     set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/simpledaemons/${PROJECT_NAME}")
     
     # Package files
-    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-    set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+    # Use .txt files for macOS PKG (required format), .md for other platforms
+    if(APPLE)
+        set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+        set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
+        set(CPACK_RESOURCE_FILE_WELCOME "${CMAKE_CURRENT_SOURCE_DIR}/WELCOME.txt")
+    else()
+        set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+        set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+    endif()
     
     # Platform-specific package settings
     if(WIN32)

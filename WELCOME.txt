@@ -1,0 +1,41 @@
+Welcome to Simple TFTP Daemon
+==============================
+
+Thank you for installing Simple TFTP Daemon v0.2.1!
+
+Simple TFTP Daemon is a lightweight, cross-platform TFTP server that provides a secure and efficient way to transfer files using the Trivial File Transfer Protocol.
+
+What's Included
+---------------
+
+This package includes:
+- The simple-tftpd executable
+- Configuration files and examples
+- Documentation in the docs/ directory
+- Service files for system integration
+
+Quick Start
+-----------
+
+1. Review the documentation in the docs/ directory
+2. Copy the example configuration from config/simple-tftpd.conf.example
+3. Edit the configuration to match your environment
+4. Start the service using the provided service files
+
+For detailed installation and configuration instructions, please refer to the documentation in the docs/ directory.
+
+Support
+-------
+
+For help, documentation, and support:
+- Documentation: See the docs/ directory
+- GitHub: https://github.com/simpledaemons/simple-tftpd
+- Email: info@simpledaemons.com
+
+License
+-------
+
+This software is licensed under the Apache License, Version 2.0.
+See LICENSE.txt for the full license text.
+
+Copyright 2024 SimpleDaemons
