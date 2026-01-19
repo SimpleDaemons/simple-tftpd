@@ -210,8 +210,15 @@ if(ENABLE_PACKAGING)
         # DMG settings
         set(CPACK_DMG_VOLUME_NAME "${PROJECT_NAME}")
         set(CPACK_DMG_FORMAT "UDBZ")
-        set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/assets/dmg_background.png")
-        set(CPACK_DMG_DS_STORE "${CMAKE_CURRENT_SOURCE_DIR}/assets/DS_Store")
+        
+        # Optional DMG customization files (only set if they exist)
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/dmg_background.png")
+            set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/assets/dmg_background.png")
+        endif()
+        
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/DS_Store")
+            set(CPACK_DMG_DS_STORE "${CMAKE_CURRENT_SOURCE_DIR}/assets/DS_Store")
+        endif()
         
         # PKG settings
         set(CPACK_PRODUCTBUILD_IDENTIFIER "com.simpledaemons.${PROJECT_NAME}")
