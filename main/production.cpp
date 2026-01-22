@@ -49,14 +49,14 @@ void signalHandler(int signal) {
         }
         return;
     }
-    
+
     if (g_shutdown_requested.exchange(true)) {
         // Already shutting down, force exit
         std::exit(1);
     }
-    
+
     g_logger->info("Received signal " + std::to_string(signal) + ", initiating graceful shutdown");
-    
+
     if (g_server) {
         g_server->stop();
     }
@@ -79,7 +79,7 @@ void printUsage() {
     std::cout << "  --listen ADDR        Listen on specific address" << std::endl;
     std::cout << "  --port PORT          Listen on specific port" << std::endl;
     std::cout << "  --root DIR           Set root directory for file operations" << std::endl;
-    
+
     std::cout << "\nCommands:" << std::endl;
     std::cout << "  start                Start the TFTP server" << std::endl;
     std::cout << "  stop                 Stop the TFTP server" << std::endl;
@@ -89,7 +89,7 @@ void printUsage() {
     std::cout << "  test                 Test server configuration" << std::endl;
     std::cout << "  stats                Show server statistics" << std::endl;
     std::cout << "  connections          List active connections" << std::endl;
-    
+
     std::cout << "\nExamples:" << std::endl;
     std::cout << "  simple-tftpd start --config /etc/simple-tftpd/config.json" << std::endl;
     std::cout << "  simple-tftpd start --listen 0.0.0.0 --port 69 --root /var/tftp" << std::endl;
@@ -121,10 +121,10 @@ bool parseArguments(int argc, char* argv[], std::shared_ptr<TftpConfig>& config)
     bool test_config = false;
     bool validate_config = false;
     std::string command;
-    
+
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        
+
         if (arg == "--help" || arg == "-h") {
             printUsage();
             return false;
@@ -185,7 +185,7 @@ bool parseArguments(int argc, char* argv[], std::shared_ptr<TftpConfig>& config)
             return false;
         }
     }
-    
+
     // Load configuration file if specified
     if (!config_file.empty()) {
         if (!config->loadFromFile(config_file)) {
@@ -194,7 +194,7 @@ bool parseArguments(int argc, char* argv[], std::shared_ptr<TftpConfig>& config)
         }
         g_config_file = config_file; // Store for reload
     }
-    
+
     // Handle special commands
     if (test_config) {
         if (config->validate()) {
@@ -204,7 +204,7 @@ bool parseArguments(int argc, char* argv[], std::shared_ptr<TftpConfig>& config)
         }
         return false;
     }
-    
+
     if (validate_config) {
         if (config->validate()) {
             std::cout << "Configuration validation passed" << std::endl;
@@ -213,7 +213,7 @@ bool parseArguments(int argc, char* argv[], std::shared_ptr<TftpConfig>& config)
         }
         return false;
     }
-    
+
     return true;
 }
 
@@ -223,11 +223,11 @@ bool parseArguments(int argc, char* argv[], std::shared_ptr<TftpConfig>& config)
 void initializeSignalHandlers() {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
-    
+
 #ifdef SIGQUIT
     signal(SIGQUIT, signalHandler);
 #endif
-    
+
 #ifdef SIGHUP
     signal(SIGHUP, signalHandler);
 #endif
@@ -243,65 +243,65 @@ int main(int argc, char* argv[]) {
     try {
         // Create default configuration
         auto config = std::make_shared<TftpConfig>();
-        
+
         // Parse command line arguments
         if (!parseArguments(argc, argv, config)) {
             return 0;
         }
-        
+
         // Create logger
         g_logger = std::make_shared<Logger>(
             config->getLogFile(),
             config->getLogLevel(),
             config->isConsoleLoggingEnabled()
         );
-        
+
         g_logger->info("Starting simple-tftpd v0.2.0-beta");
         g_logger->info("Configuration loaded successfully");
-        
+
         // Initialize signal handlers
         initializeSignalHandlers();
-        
+
         // Create TFTP server
         g_server = std::make_shared<TftpServer>(config, g_logger);
-        
+
         // Set config file path for reload
         if (!g_config_file.empty()) {
             g_server->setConfigFile(g_config_file);
         }
-        
+
         // Set connection callback
         g_server->setConnectionCallback([](TftpConnectionState state, const std::string& message) {
             g_logger->info("Connection state change: " + message);
         });
-        
+
         // Set server callback
         g_server->setServerCallback([](const std::string& event, const std::string& message) {
             g_logger->info("Server event: " + event + " - " + message);
         });
-        
+
         // Start server
         if (!g_server->start()) {
             g_logger->error("Failed to start TFTP server");
             return 1;
         }
-        
+
         g_logger->info("TFTP server started successfully");
         g_logger->info("Listening on " + config->getListenAddress() + ":" + std::to_string(config->getListenPort()));
         g_logger->info("Root directory: " + config->getRootDirectory());
-        
+
         // Main server loop
         while (!g_shutdown_requested && g_server->isRunning()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        
+
         // Shutdown
         g_logger->info("Shutting down TFTP server");
         g_server->stop();
         g_logger->info("TFTP server stopped");
-        
+
         return 0;
-        
+
     } catch (const std::exception& e) {
         if (g_logger) {
             g_logger->fatal("Fatal error: " + std::string(e.what()));
