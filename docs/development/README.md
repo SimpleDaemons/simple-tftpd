@@ -308,7 +308,7 @@ NamespaceIndentation: None
 ```cpp
 /**
  * @brief TFTP server main class
- * 
+ *
  * This class manages the main TFTP server functionality including:
  * - Listening for incoming connections
  * - Managing multiple TFTP connections
@@ -323,7 +323,7 @@ public:
      * @return true if started successfully, false otherwise
      */
     bool start();
-    
+
     /**
      * @brief Stop the TFTP server
      */
@@ -340,16 +340,16 @@ bool TftpServer::start() {
         logger_->warning("Server is already running");
         return false;
     }
-    
+
     // Initialize network components
     if (!initializeNetwork()) {
         logger_->error("Failed to initialize network");
         return false;
     }
-    
+
     // Start listener thread
     startListenerThread();
-    
+
     running_.store(true);
     logger_->info("TFTP server started successfully");
     return true;
@@ -385,7 +385,7 @@ protected:
     void SetUp() override {
         // Setup test data
     }
-    
+
     void TearDown() override {
         // Cleanup test data
     }
@@ -393,16 +393,16 @@ protected:
 
 TEST_F(TftpPacketTest, CreateValidPacket) {
     TftpPacket packet(TftpOpcode::RRQ);
-    
+
     EXPECT_EQ(packet.getOpcode(), TftpOpcode::RRQ);
     EXPECT_TRUE(packet.isValid());
 }
 
 TEST_F(TftpPacketTest, ParseInvalidData) {
     uint8_t invalid_data[] = {0x00}; // Too short
-    
+
     TftpPacket packet(invalid_data, 1);
-    
+
     EXPECT_FALSE(packet.isValid());
 }
 ```

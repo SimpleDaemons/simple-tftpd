@@ -1,6 +1,6 @@
 # Enterprise Management Interface
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -41,5 +41,5 @@ REST API uses token-based authentication.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

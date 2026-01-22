@@ -1,6 +1,6 @@
 # Enterprise Version Configuration Guide
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -45,5 +45,5 @@ This guide covers Enterprise-specific configuration options.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

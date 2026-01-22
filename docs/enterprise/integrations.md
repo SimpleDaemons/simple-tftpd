@@ -1,6 +1,6 @@
 # Enterprise Integrations
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -37,5 +37,5 @@ The Enterprise Version includes integrations with enterprise systems.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

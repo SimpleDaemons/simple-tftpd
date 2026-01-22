@@ -1,6 +1,6 @@
 # Datacenter Scaling Guide
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -18,5 +18,5 @@ Horizontal scaling and load balancing for datacenter deployments.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

@@ -1,6 +1,6 @@
 # Datacenter Plugin Architecture
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -18,5 +18,5 @@ Plugin architecture for extending Datacenter Version functionality.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

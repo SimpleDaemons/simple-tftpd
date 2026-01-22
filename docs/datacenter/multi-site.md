@@ -1,6 +1,6 @@
 # Datacenter Multi-Site Configuration
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -18,5 +18,5 @@ Multi-site synchronization and configuration for datacenter deployments.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

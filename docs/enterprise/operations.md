@@ -1,6 +1,6 @@
 # Enterprise Operations Guide
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -18,5 +18,5 @@ Day-to-day operations for the Enterprise Version.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

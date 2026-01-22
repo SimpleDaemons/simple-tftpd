@@ -1,6 +1,6 @@
 # Enterprise Performance Optimization
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -18,5 +18,5 @@ Enterprise performance optimization features and tuning.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

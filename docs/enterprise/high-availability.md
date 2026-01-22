@@ -1,6 +1,6 @@
 # Enterprise High Availability Setup
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -43,5 +43,5 @@ The Enterprise Version supports high availability configurations for mission-cri
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

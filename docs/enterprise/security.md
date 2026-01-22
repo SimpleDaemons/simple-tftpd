@@ -1,6 +1,6 @@
 # Enterprise Security Features
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -19,5 +19,5 @@ Enterprise security features including authentication, authorization, and advanc
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

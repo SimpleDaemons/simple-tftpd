@@ -1,6 +1,6 @@
 # Datacenter Version Installation Guide
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -21,5 +21,5 @@ See [Docker Swarm Deployment](docker-swarm.md) for Docker Swarm installation.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned

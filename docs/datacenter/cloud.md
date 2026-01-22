@@ -1,6 +1,6 @@
 # Datacenter Cloud Deployment
 
-**Version:** Planned  
+**Version:** Planned
 **License:** BSL 1.1
 
 ---
@@ -18,5 +18,5 @@ Cloud deployment guides for AWS, Azure, and GCP.
 
 ---
 
-**Last Updated:** December 2024  
+**Last Updated:** December 2024
 **Status:** Planned
