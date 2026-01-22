@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simple-tftpd/core/monitoring.hpp"
+#include "simple-tftpd/core/tftp/monitoring.hpp"
 #include <sstream>
 #include <iomanip>
 #include <mutex>

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "simple-tftpd/core/server.hpp"
-#include "simple-tftpd/core/monitoring.hpp"
+#include "simple-tftpd/core/tftp/server.hpp"
+#include "simple-tftpd/core/tftp/monitoring.hpp"
 #include <iostream>
 #include <sstream>
 #include <cstring>

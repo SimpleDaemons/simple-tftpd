@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "simple-tftpd/utils/logger.hpp"
+#include "simple-tftpd/core/utils/logger.hpp"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
