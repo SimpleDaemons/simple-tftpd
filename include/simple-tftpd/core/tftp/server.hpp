@@ -34,6 +34,7 @@ namespace simple_tftpd {
 
 // Forward declarations
 class Monitoring;
+class ProductionSecurityManager;
 struct HealthCheckResult;
 struct ServerMetrics;
 
@@ -229,6 +230,12 @@ public:
      * @return Vector of connection information strings
      */
     std::vector<std::string> listConnections() const;
+
+    /**
+     * @brief Set security manager
+     * @param security_manager Security manager instance
+     */
+    void setSecurityManager(std::shared_ptr<ProductionSecurityManager> security_manager);
 
 private:
     std::shared_ptr<TftpConfig> config_;

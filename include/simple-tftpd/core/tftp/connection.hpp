@@ -33,6 +33,7 @@ namespace simple_tftpd {
 
 // Forward declarations
 class TftpServer;
+class ProductionSecurityManager;
 
 /**
  * @brief TFTP connection state
@@ -192,6 +193,12 @@ public:
     void setCallback(std::function<void(TftpConnectionState, const std::string&)> callback);
 
     /**
+     * @brief Set security manager
+     * @param security_manager Security manager instance
+     */
+    void setSecurityManager(std::shared_ptr<ProductionSecurityManager> security_manager);
+
+    /**
      * @brief Process data based on transfer mode
      * @param data Raw data
      * @param mode Transfer mode
@@ -266,6 +273,9 @@ private:
     // File handling
     std::ifstream read_file_;
     std::ofstream write_file_;
+
+    // Security manager (optional, for production builds)
+    std::shared_ptr<ProductionSecurityManager> security_manager_;
 
     // Reliability + retransmission tracking
     std::map<uint16_t, InFlightBlock> in_flight_blocks_;
