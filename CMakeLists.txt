@@ -18,6 +18,10 @@ elseif(UNIX)
     set(PLATFORM_NAME "Linux")
 endif()
 
+# Version selection
+set(BUILD_VERSION "production" CACHE STRING "Version to build: production, enterprise, datacenter")
+set_property(CACHE BUILD_VERSION PROPERTY STRINGS production enterprise datacenter)
+
 # Build options
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(ENABLE_TESTS "Enable tests" OFF)
@@ -43,32 +47,88 @@ endif()
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Source files for core library (exclude main.cpp and test files)
-file(GLOB_RECURSE CORE_SOURCES "src/simple-tftpd/*.cpp" "src/simple-tftpd/*.c" "src/utils/*.cpp" "src/utils/*.c")
-file(GLOB_RECURSE CONFIG_SOURCES "src/simple-tftpd/config/*.cpp" "src/simple-tftpd/config/*.c")
-list(APPEND CORE_SOURCES ${CONFIG_SOURCES})
-# Always exclude test files
-list(FILTER CORE_SOURCES EXCLUDE REGEX ".*test.*\\.cpp$")
-list(FILTER CORE_SOURCES EXCLUDE REGEX ".*tests/.*\\.cpp$")
-file(GLOB_RECURSE HEADERS "include/*.hpp" "include/*.h")
+# Core sources (always included - shared by all versions)
+set(CORE_SOURCES
+    src/core/tftp/server.cpp
+    src/core/tftp/connection.cpp
+    src/core/tftp/packet.cpp
+    src/core/tftp/monitoring.cpp
+    src/core/config/parser.cpp
+    src/core/utils/logger.cpp
+)
 
-# Create core library (for tests and main executable)
-add_library(simple-tftpd-core STATIC ${CORE_SOURCES} ${HEADERS})
+# Core headers
+file(GLOB_RECURSE CORE_HEADERS "include/simple-tftpd/core/*.hpp")
 
-# Source files for main executable (only main.cpp)
-file(GLOB MAIN_SOURCES "src/main.cpp")
+# Version-specific sources and main
+if(BUILD_VERSION STREQUAL "production")
+    set(VERSION_SOURCES
+        ${CORE_SOURCES}
+        # Production-specific sources will be added here
+        # src/production/security/manager.cpp
+        # src/production/features/advanced_manager.cpp
+    )
+    file(GLOB_RECURSE VERSION_HEADERS
+        "include/simple-tftpd/core/*.hpp"
+        "include/simple-tftpd/production/*.hpp"
+    )
+    set(VERSION_MAIN main/production.cpp)
+    set(PACKAGE_SUFFIX "production")
+    set(PROJECT_DESCRIPTION "Simple TFTP Daemon - Production Version")
+
+elseif(BUILD_VERSION STREQUAL "enterprise")
+    set(VERSION_SOURCES
+        ${CORE_SOURCES}
+        # Production sources
+        # Enterprise sources will be added here
+        # src/enterprise/ha/failover.cpp
+        # src/enterprise/management/web_ui.cpp
+    )
+    file(GLOB_RECURSE VERSION_HEADERS
+        "include/simple-tftpd/core/*.hpp"
+        "include/simple-tftpd/production/*.hpp"
+        "include/simple-tftpd/enterprise/*.hpp"
+    )
+    set(VERSION_MAIN main/enterprise.cpp)
+    set(PACKAGE_SUFFIX "enterprise")
+    set(PROJECT_DESCRIPTION "Simple TFTP Daemon - Enterprise Version")
+
+elseif(BUILD_VERSION STREQUAL "datacenter")
+    set(VERSION_SOURCES
+        ${CORE_SOURCES}
+        # Production sources
+        # Enterprise sources (when implemented)
+        # Datacenter sources will be added here
+        # src/datacenter/cluster/cluster_manager.cpp
+        # src/datacenter/multi-site/sync.cpp
+    )
+    file(GLOB_RECURSE VERSION_HEADERS
+        "include/simple-tftpd/core/*.hpp"
+        "include/simple-tftpd/production/*.hpp"
+        "include/simple-tftpd/enterprise/*.hpp"
+        "include/simple-tftpd/datacenter/*.hpp"
+    )
+    set(VERSION_MAIN main/datacenter.cpp)
+    set(PACKAGE_SUFFIX "datacenter")
+    set(PROJECT_DESCRIPTION "Simple TFTP Daemon - Datacenter Version")
+
+else()
+    message(FATAL_ERROR "Unknown BUILD_VERSION: ${BUILD_VERSION}. Must be: production, enterprise, or datacenter")
+endif()
+
+# Create library
+add_library(${PROJECT_NAME}_lib STATIC ${VERSION_SOURCES} ${VERSION_HEADERS})
 
 # Create executable
-add_executable(${PROJECT_NAME} ${MAIN_SOURCES})
+add_executable(${PROJECT_NAME} ${VERSION_MAIN})
 
-# Link libraries for core library
-target_link_libraries(simple-tftpd-core PUBLIC Threads::Threads)
-
-# Link libraries for main executable
-target_link_libraries(${PROJECT_NAME} simple-tftpd-core)
+# Link libraries
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_lib Threads::Threads)
+target_link_libraries(${PROJECT_NAME}_lib Threads::Threads)
 
 if(ENABLE_SSL)
-    target_link_libraries(simple-tftpd-core PUBLIC OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(${PROJECT_NAME} OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(${PROJECT_NAME}_lib OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
 if(ENABLE_JSON)
@@ -76,20 +136,27 @@ if(ENABLE_JSON)
         # For static linking, find the static library directly
         find_library(JSONCPP_STATIC_LIB jsoncpp PATHS /opt/local/lib /usr/local/lib /usr/lib)
         if(JSONCPP_STATIC_LIB)
-            target_link_libraries(simple-tftpd-core PUBLIC ${JSONCPP_STATIC_LIB})
+            target_link_libraries(${PROJECT_NAME} ${JSONCPP_STATIC_LIB})
+            target_link_libraries(${PROJECT_NAME}_lib ${JSONCPP_STATIC_LIB})
         else()
-            target_link_libraries(simple-tftpd-core PUBLIC ${JSONCPP_LIBRARIES})
+            target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES})
+            target_link_libraries(${PROJECT_NAME}_lib ${JSONCPP_LIBRARIES})
         endif()
     else()
-        target_link_libraries(simple-tftpd-core PUBLIC ${JSONCPP_LIBRARIES})
+        target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES})
+        target_link_libraries(${PROJECT_NAME}_lib ${JSONCPP_LIBRARIES})
     endif()
-    target_include_directories(simple-tftpd-core PUBLIC ${JSONCPP_INCLUDE_DIRS})
-    target_compile_options(simple-tftpd-core PRIVATE ${JSONCPP_CFLAGS_OTHER})
-    target_link_directories(simple-tftpd-core PRIVATE ${JSONCPP_LIBRARY_DIRS})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${JSONCPP_INCLUDE_DIRS})
+    target_include_directories(${PROJECT_NAME}_lib PRIVATE ${JSONCPP_INCLUDE_DIRS})
+    target_compile_options(${PROJECT_NAME}_lib PRIVATE ${JSONCPP_CFLAGS_OTHER})
+    target_link_directories(${PROJECT_NAME}_lib PRIVATE ${JSONCPP_LIBRARY_DIRS})
 endif()
 
-# Include directories for core library
-target_include_directories(simple-tftpd-core PUBLIC
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_include_directories(${PROJECT_NAME}_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
