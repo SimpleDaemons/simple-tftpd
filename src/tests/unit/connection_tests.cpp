@@ -15,11 +15,11 @@
  */
 
 #include <gtest/gtest.h>
-#include "simple-tftpd/core/connection.hpp"
-#include "simple-tftpd/core/server.hpp"
-#include "simple-tftpd/config/config.hpp"
-#include "simple-tftpd/utils/logger.hpp"
-#include "simple-tftpd/utils/platform.hpp"
+#include "simple-tftpd/core/tftp/connection.hpp"
+#include "simple-tftpd/core/tftp/server.hpp"
+#include "simple-tftpd/core/config/config.hpp"
+#include "simple-tftpd/core/utils/logger.hpp"
+#include "simple-tftpd/core/utils/platform.hpp"
 #include <memory>
 #include <thread>
 #include <chrono>

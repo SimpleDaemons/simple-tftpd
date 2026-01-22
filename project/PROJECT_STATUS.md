@@ -216,6 +216,5 @@ The Simple TFTP Daemon project is now **~90% complete** for production readiness
 
 ---
 
-*Last Updated: January 2025*  
+*Last Updated: January 2025*
 *Project Status: ~90% Complete - Production Ready (Pending Final Testing)*
-

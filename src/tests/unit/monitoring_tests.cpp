@@ -15,7 +15,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "simple-tftpd/core/monitoring.hpp"
+#include "simple-tftpd/core/tftp/monitoring.hpp"
 #include <thread>
 #include <chrono>
 

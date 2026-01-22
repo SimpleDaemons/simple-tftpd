@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "simple-tftpd/utils/platform.hpp"
-#include "simple-tftpd/core/packet.hpp"
+#include "simple-tftpd/core/utils/platform.hpp"
+#include "simple-tftpd/core/tftp/packet.hpp"
 #include <string>
 #include <vector>
 #include <cstdint>

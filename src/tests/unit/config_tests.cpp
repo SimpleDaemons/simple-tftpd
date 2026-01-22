@@ -15,7 +15,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "simple-tftpd/config/config.hpp"
+#include "simple-tftpd/core/config/config.hpp"
 #include <fstream>
 #include <filesystem>
 #include <cstdio>

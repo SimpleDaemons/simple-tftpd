@@ -9,9 +9,9 @@
  */
 
 #include <gtest/gtest.h>
-#include "simple-tftpd/core/server.hpp"
-#include "simple-tftpd/config/config.hpp"
-#include "simple-tftpd/utils/logger.hpp"
+#include "simple-tftpd/core/tftp/server.hpp"
+#include "simple-tftpd/core/config/config.hpp"
+#include "simple-tftpd/core/utils/logger.hpp"
 #include "tftp_client.hpp"
 #include "../utils/test_helpers.hpp"
 #include <thread>

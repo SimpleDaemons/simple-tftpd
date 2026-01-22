@@ -19,9 +19,9 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include "simple-tftpd/config/config.hpp"
-#include "simple-tftpd/core/server.hpp"
-#include "simple-tftpd/utils/logger.hpp"
+#include "simple-tftpd/core/config/config.hpp"
+#include "simple-tftpd/core/tftp/server.hpp"
+#include "simple-tftpd/core/utils/logger.hpp"
 
 using namespace simple_tftpd;
 

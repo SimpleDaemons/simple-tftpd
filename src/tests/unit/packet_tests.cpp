@@ -9,7 +9,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "simple-tftpd/core/packet.hpp"
+#include "simple-tftpd/core/tftp/packet.hpp"
 #include <vector>
 #include <cstring>
 
