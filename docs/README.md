@@ -1,72 +1,213 @@
 # Simple TFTP Daemon Documentation
 
-Welcome to the comprehensive documentation for the Simple TFTP Daemon project.
+Welcome to the Simple TFTP Daemon documentation. This guide will help you understand, configure, and deploy the Simple TFTP Daemon effectively.
 
-## Documentation Overview
+## Product Versions
 
-This documentation covers all aspects of the simple-tftpd project, from installation and usage to development and contribution guidelines.
+Simple TFTP Daemon is available in three versions, each designed for different deployment scenarios:
 
-## Quick Start
+### 🏭 Production Version
+**License:** Apache 2.0
+**Status:** ✅ ~82% Complete - Beta Release
+**Target:** Small to medium deployments, single-server installations
 
-- **[Installation Guide](installation/README.md)** - Get simple-tftpd up and running
-- **[User Guide](user-guide/README.md)** - Learn how to use the TFTP daemon
-- **[Configuration Reference](configuration/README.md)** - Configure the daemon for your needs
-- **[Examples](examples/README.md)** - Practical usage examples
+- Complete TFTP protocol implementation (RFC 1350, RFC 2347)
+- Windowed transfers with sliding window
+- TFTP options support (blksize, timeout, tsize, windowsize)
+- Basic security features (access control, file filtering, IP filtering)
+- Multi-format configuration (JSON, YAML, INI)
+- Hot reload configuration
+- Cross-platform support
 
-## For Developers
+**Documentation:** [Production Version Documentation](production/README.md)
 
-- **[Development Guide](development/README.md)** - Set up development environment
-- **[API Reference](api/README.md)** - Complete API documentation
-- **[Architecture Overview](architecture/README.md)** - Understand the code structure
-- **[Testing Guide](testing/README.md)** - Run tests and contribute tests
+### 🏢 Enterprise Version
+**License:** BSL 1.1 (Business Source License 1.1)
+**Status:** 📋 Planned
+**Target:** Large deployments, multi-server environments, enterprise integrations
 
-## Project Information
+- All Production Version features included
+- Web management interface
+- REST API for management
+- SNMP integration
+- Advanced authentication and authorization (RBAC, ACLs)
+- Advanced security (rate limiting, DDoS protection)
+- High availability and clustering
+- Advanced monitoring and observability
+- Plugin architecture
 
-- **[Project Status](../BUILD_STATUS.md)** - Current build and development status
-- **[Changelog](../CHANGELOG.md)** - Version history and changes
-- **[Contributing Guidelines](../CONTRIBUTING.md)** - How to contribute to the project
-- **[License](../LICENSE)** - Apache 2.0 License
+**Documentation:** [Enterprise Version Documentation](enterprise/README.md)
+
+### 🏛️ Datacenter Version
+**License:** BSL 1.1 (Business Source License 1.1)
+**Status:** 📋 Planned
+**Target:** Large-scale datacenter deployments, cloud environments, multi-site operations
+
+- All Enterprise Version features included
+- Horizontal scaling support
+- Multi-site synchronization
+- Cloud service integrations
+- Advanced performance optimizations
+- Multi-tenant support
+- Advanced analytics
+
+**Documentation:** [Datacenter Version Documentation](datacenter/README.md)
+
+---
 
 ## Documentation Structure
 
-```
-docs/
-├── README.md                 # This file - documentation index
-├── installation/            # Installation and setup guides
-├── user-guide/             # User documentation and tutorials
-├── configuration/           # Configuration file reference
-├── examples/                # Usage examples and samples
-├── development/             # Developer documentation
-├── api/                    # API reference documentation
-├── architecture/            # System architecture overview
-└── testing/                # Testing documentation
-```
+### 📚 Shared Documentation
+Common documentation applicable to all versions:
 
-## Getting Help
+- **[Getting Started](shared/getting-started/)** - Installation and quick start guides
+- **[Configuration](shared/configuration/)** - Configuration reference and examples
+- **[Diagrams](shared/diagrams/)** - Architecture and flow diagrams
+- **[Troubleshooting](shared/troubleshooting/)** - Common issues and debugging
+- **[User Guide](shared/user-guide/)** - User documentation
+- **[Examples](shared/examples/)** - Usage examples
 
-- **Issues**: Report bugs or request features on GitHub
-- **Discussions**: Ask questions and share ideas
-- **Documentation Issues**: Report documentation problems
+### 🏭 Production Version Documentation
+- **[Production Guide](production/README.md)** - Complete Production Version documentation
+- **[Installation](production/installation.md)** - Production installation guide
+- **[Configuration](production/configuration.md)** - Production configuration reference
+- **[Deployment](production/deployment.md)** - Production deployment guide
+- **[Security](production/security.md)** - Production security best practices
+- **[Performance](production/performance.md)** - Production performance tuning
+- **[Operations](production/operations.md)** - Production operations guide
 
-## Documentation Standards
+### 🏢 Enterprise Version Documentation
+- **[Enterprise Guide](enterprise/README.md)** - Complete Enterprise Version documentation
+- **[Installation](enterprise/installation.md)** - Enterprise installation guide
+- **[Management Interface](enterprise/management.md)** - Web UI and REST API
+- **[High Availability](enterprise/high-availability.md)** - HA setup and configuration
+- **[Integrations](enterprise/integrations.md)** - SNMP and other integrations
+- **[Security](enterprise/security.md)** - Advanced security features
+- **[Operations](enterprise/operations.md)** - Enterprise operations guide
 
-- All documentation is written in Markdown
-- Code examples include syntax highlighting
-- Configuration examples are validated
-- Screenshots and diagrams are included where helpful
-- Cross-references between related sections
+### 🏛️ Datacenter Version Documentation
+- **[Datacenter Guide](datacenter/README.md)** - Complete Datacenter Version documentation
+- **[Installation](datacenter/installation.md)** - Datacenter installation guide
+- **[Multi-Site Setup](datacenter/multi-site.md)** - Multi-site configuration
+- **[Cloud Deployment](datacenter/cloud.md)** - Cloud deployment guides
+- **[Scaling](datacenter/scaling.md)** - Horizontal scaling and load balancing
+- **[Monitoring](datacenter/monitoring.md)** - Advanced monitoring and analytics
+
+### 👨‍💻 Developer Documentation
+Documentation for developers and contributors:
+
+- **[Developer Guide](development/README.md)** - Complete developer documentation
+- **[Build Guide](development/BUILD_GUIDE.md)** - Build commands and reference
+- **[Setup Guide](development/SETUP.md)** - Development environment setup
+
+---
+
+## Quick Start
+
+### Production Version
+1. [Install Simple TFTP Daemon](shared/getting-started/README.md)
+2. [Quick Start Guide](shared/getting-started/quick-start.md)
+3. [Production Configuration](production/configuration.md)
+4. [Production Deployment](production/deployment.md)
+
+### Enterprise Version
+1. [Install Simple TFTP Daemon](shared/getting-started/README.md)
+2. [Enterprise Setup](enterprise/README.md)
+3. [Management Interface](enterprise/management.md)
+4. [High Availability](enterprise/high-availability.md)
+
+### Datacenter Version
+1. [Install Simple TFTP Daemon](shared/getting-started/README.md)
+2. [Datacenter Setup](datacenter/README.md)
+3. [Multi-Site Configuration](datacenter/multi-site.md)
+4. [Scaling Guide](datacenter/scaling.md)
+
+---
+
+## Version Comparison
+
+| Feature | Production | Enterprise | Datacenter |
+|---------|-----------|------------|------------|
+| **License** | Apache 2.0 | BSL 1.1 | BSL 1.1 |
+| **TFTP Protocol** | ✅ Complete | ✅ Complete | ✅ Complete |
+| **Windowed Transfers** | ✅ | ✅ | ✅ |
+| **TFTP Options** | ✅ | ✅ | ✅ |
+| **Basic Security** | ✅ | ✅ | ✅ |
+| **Multi-Format Config** | ✅ | ✅ | ✅ |
+| **Hot Reload** | ✅ | ✅ | ✅ |
+| **Web Management** | ❌ | ✅ | ✅ |
+| **REST API** | ❌ | ✅ | ✅ |
+| **SNMP Integration** | ❌ | ✅ | ✅ |
+| **Authentication/RBAC** | ❌ | ✅ | ✅ |
+| **Rate Limiting** | ❌ | ✅ | ✅ |
+| **High Availability** | ❌ | ✅ | ✅ |
+| **Clustering** | ❌ | ✅ | ✅ |
+| **Horizontal Scaling** | ❌ | ❌ | ✅ |
+| **Multi-Site Sync** | ❌ | ❌ | ✅ |
+| **Cloud Integration** | ❌ | ❌ | ✅ |
+| **Plugin System** | ❌ | ✅ | ✅ |
+| **Multi-Tenant** | ❌ | ❌ | ✅ |
+
+---
+
+## Documentation by Topic
+
+### Getting Started
+- [Installation Guide](shared/getting-started/README.md) - Install on Linux, macOS, Windows
+- [Quick Start](shared/getting-started/quick-start.md) - Get running in minutes
+- [First Steps](shared/getting-started/first-steps.md) - Basic configuration
+
+### Configuration
+- [Configuration Reference](shared/configuration/README.md) - Complete configuration guide
+- [Production Configuration](production/configuration.md) - Production-specific configuration
+- [Enterprise Configuration](enterprise/configuration.md) - Enterprise-specific configuration
+- [Datacenter Configuration](datacenter/configuration.md) - Datacenter-specific configuration
+
+### Deployment
+- [Production Deployment](production/deployment.md) - Production deployment guide
+- [Enterprise Deployment](enterprise/deployment.md) - Enterprise deployment guide
+- [Datacenter Deployment](datacenter/deployment.md) - Datacenter deployment guide
+- [Docker Deployment](shared/deployment/docker.md) - Containerized deployment
+- [High Availability](enterprise/high-availability.md) - HA setup (Enterprise+)
+
+### Operations
+- [Production Operations](production/operations.md) - Production operations guide
+- [Monitoring](shared/deployment/monitoring.md) - Monitoring setup
+- [Backup Procedures](shared/deployment/backup-procedures.md) - Backup and restore
+- [Maintenance](shared/deployment/maintenance-procedures.md) - Maintenance procedures
+
+### Security
+- [Production Security](production/security.md) - Production security best practices
+- [Enterprise Security](enterprise/security.md) - Advanced security features
+- [Security Best Practices](shared/user-guide/security-best-practices.md) - General security guide
+
+### Performance
+- [Production Performance](production/performance.md) - Production performance tuning
+- [Enterprise Performance](enterprise/performance.md) - Enterprise performance optimization
+- [Datacenter Performance](datacenter/performance.md) - Datacenter scaling and optimization
+
+### Troubleshooting
+- [Common Issues](shared/troubleshooting/README.md) - Troubleshooting guide
+- [Debugging](shared/troubleshooting/debugging.md) - Debugging techniques
+- [Performance Issues](shared/troubleshooting/performance.md) - Performance troubleshooting
+
+---
 
 ## Contributing to Documentation
 
-We welcome contributions to improve the documentation:
+We welcome contributions to improve this documentation. Please see our [Contributing Guide](../CONTRIBUTING.md) for details on how to contribute.
 
-1. Fork the repository
-2. Make your changes in the `docs/` directory
-3. Ensure all links work and examples are valid
-4. Submit a pull request
+## Feedback
 
-## Version Information
+If you find any issues with the documentation or have suggestions for improvement, please:
 
-- **Documentation Version**: 0.1.0
-- **Last Updated**: December 2024
-- **Project Version**: 0.1.0
+1. Open an issue on [GitHub](https://github.com/SimpleDaemons/simple-tftpd/issues)
+2. Submit a pull request with your improvements
+3. Contact us at docs@simpledaemons.com
+
+---
+
+**Last Updated**: December 2024
+**Production Version**: 0.2.0-beta (~82% Complete)
+**Enterprise Version**: Planned
+**Datacenter Version**: Planned

@@ -119,45 +119,42 @@ Test suite:
 - `test_main.cpp` - Test entry point
 - `test_helpers.cpp` - Test utilities
 
+## Quick Start
+
+1. **[Setup Guide](SETUP.md)** - Set up your development environment
+2. **[Build Guide](BUILD_GUIDE.md)** - Build commands and reference
+3. Continue reading this guide for development workflow
+
 ## Building from Source
 
-### Basic Build
+See [Build Guide](BUILD_GUIDE.md) for complete build instructions.
+
+### Quick Build
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/simple-tftpd.git
+git clone https://github.com/SimpleDaemons/simple-tftpd.git
 cd simple-tftpd
 
 # Create build directory
-mkdir build
-cd build
+mkdir build && cd build
 
-# Configure with CMake
-cmake ..
-
-# Build
+# Configure and build Production version
+cmake -DBUILD_VERSION=production ..
 make -j$(nproc)  # Linux/macOS
-# or
-cmake --build . --config Release  # Windows
 ```
 
-### Build Options
+### Version-Specific Builds
 
 ```bash
-# Debug build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
+# Production version
+cmake -DBUILD_VERSION=production ..
 
-# Release build with optimizations
-cmake -DCMAKE_BUILD_TYPE=Release ..
+# Enterprise version
+cmake -DBUILD_VERSION=enterprise ..
 
-# Custom installation prefix
-cmake -DCMAKE_INSTALL_PREFIX=/opt/simple-tftpd ..
-
-# Enable/disable features
-cmake -DBUILD_TESTS=ON -DBUILD_EXAMPLES=OFF ..
-
-# Platform-specific options
-cmake -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" ..  # macOS
+# Datacenter version
+cmake -DBUILD_VERSION=datacenter ..
 ```
 
 ### Using Build Scripts
