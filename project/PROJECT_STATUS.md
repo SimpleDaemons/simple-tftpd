@@ -11,6 +11,28 @@ Simple TFTP Daemon is a lightweight, high-performance TFTP (Trivial File Transfe
 - Modern C++17 architecture
 - Multi-format configuration (JSON, YAML, INI)
 
+## 📦 Product Versions
+
+The project is organized into three product versions:
+
+### 🏭 Production Version (Apache 2.0)
+- **Status:** ✅ ~82% Complete - Beta Release
+- **Target:** Small to medium deployments, single-server installations
+- **Features:** Complete TFTP protocol, basic security, multi-format configuration, hot reload
+- **Documentation:** `docs/production/`
+
+### 🏢 Enterprise Version (BSL 1.1)
+- **Status:** 📋 Planned
+- **Target:** Large deployments, multi-server environments, enterprise integrations
+- **Features:** All Production features + Web UI, REST API, SNMP, HA, advanced security
+- **Documentation:** `docs/enterprise/`
+
+### 🏛️ Datacenter Version (BSL 1.1)
+- **Status:** 📋 Planned
+- **Target:** Large-scale datacenter deployments, cloud environments, multi-site operations
+- **Features:** All Enterprise features + Horizontal scaling, multi-site sync, cloud integrations
+- **Documentation:** `docs/datacenter/`
+
 ## ✅ Completed Features
 
 ### 1. Core Application Structure
