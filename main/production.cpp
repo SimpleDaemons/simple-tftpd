@@ -23,6 +23,7 @@
 #include "simple-tftpd/core/tftp/server.hpp"
 #include "simple-tftpd/core/config/config.hpp"
 #include "simple-tftpd/core/utils/logger.hpp"
+#include "simple-tftpd/production/security/manager.hpp"
 
 using namespace simple_tftpd;
 
@@ -262,8 +263,17 @@ int main(int argc, char* argv[]) {
         // Initialize signal handlers
         initializeSignalHandlers();
 
+        // Create production security manager
+        auto security_manager = std::make_shared<ProductionSecurityManager>(config, g_logger);
+        g_logger->info("Production Security Manager initialized");
+
         // Create TFTP server
         g_server = std::make_shared<TftpServer>(config, g_logger);
+
+        // Set security manager for connections (via server)
+        // Note: This requires adding a method to TftpServer to set security manager
+        // For now, we'll set it on connections after they're created
+        g_server->setSecurityManager(security_manager);
 
         // Set config file path for reload
         if (!g_config_file.empty()) {

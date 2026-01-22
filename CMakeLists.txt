@@ -64,8 +64,8 @@ file(GLOB_RECURSE CORE_HEADERS "include/simple-tftpd/core/*.hpp")
 if(BUILD_VERSION STREQUAL "production")
     set(VERSION_SOURCES
         ${CORE_SOURCES}
-        # Production-specific sources will be added here
-        # src/production/security/manager.cpp
+        src/production/security/manager.cpp
+        # Production-specific sources
         # src/production/features/advanced_manager.cpp
     )
     file(GLOB_RECURSE VERSION_HEADERS
