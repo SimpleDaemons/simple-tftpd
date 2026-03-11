@@ -1,7 +1,7 @@
 Welcome to Simple TFTP Daemon
 ==============================
 
-Thank you for installing Simple TFTP Daemon v0.2.1!
+Thank you for installing Simple TFTP Daemon v0.3.0!
 
 Simple TFTP Daemon is a lightweight, cross-platform TFTP server that provides a secure and efficient way to transfer files using the Trivial File Transfer Protocol.
 

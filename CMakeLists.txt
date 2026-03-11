@@ -3,7 +3,7 @@
 # Copyright 2024 SimpleDaemons
 
 cmake_minimum_required(VERSION 3.16)
-project(simple-tftpd VERSION 0.2.1 LANGUAGES CXX DESCRIPTION "A lightweight, cross-platform TFTP daemon")
+project(simple-tftpd VERSION 0.3.0 LANGUAGES CXX DESCRIPTION "A lightweight, cross-platform TFTP daemon")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -24,7 +24,7 @@ set_property(CACHE BUILD_VERSION PROPERTY STRINGS production enterprise datacent
 
 # Build options
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-option(ENABLE_TESTS "Enable tests" OFF)
+option(ENABLE_TESTS "Enable tests" ON)
 option(ENABLE_PACKAGING "Enable package generation" ON)
 option(ENABLE_SSL "Enable SSL/TLS support" ON)
 option(ENABLE_JSON "Enable JSON support" ON)
@@ -116,8 +116,19 @@ else()
     message(FATAL_ERROR "Unknown BUILD_VERSION: ${BUILD_VERSION}. Must be: production, enterprise, or datacenter")
 endif()
 
+# AddressSanitizer support (for memory leak detection)
+if(ENABLE_SANITIZER)
+    set(ASAN_FLAGS "-fsanitize=address -fno-omit-frame-pointer -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+    message(STATUS "AddressSanitizer enabled for memory leak detection")
+endif()
+
 # Create library
 add_library(${PROJECT_NAME}_lib STATIC ${VERSION_SOURCES} ${VERSION_HEADERS})
+
+# Alias for tests (they link to simple-tftpd-core)
+add_library(simple-tftpd-core ALIAS ${PROJECT_NAME}_lib)
 
 # Create executable
 add_executable(${PROJECT_NAME} ${VERSION_MAIN})
@@ -230,8 +241,12 @@ elseif(APPLE)
     )
 endif()
 
-# Tests
+# Tests (expose variables for test subdirectory)
 if(ENABLE_TESTS)
+    if(ENABLE_JSON)
+        set(JSONCPP_FOUND TRUE)
+    endif()
+    set(PLATFORM_LIBRARIES Threads::Threads)
     enable_testing()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/CMakeLists.txt")
         add_subdirectory(src/tests)

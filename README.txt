@@ -1,7 +1,7 @@
 Simple TFTP Daemon
 =================
 
-Version: v0.2.1
+Version: v0.3.0
 Status: Production Ready
 
 A lightweight, cross-platform TFTP (Trivial File Transfer Protocol) daemon written in C++17. Implements RFC 1350 with full support for TFTP options (RFC 2347), windowed transfers, and comprehensive security features.
