@@ -1,6 +1,6 @@
 # Simple TFTP Daemon - Troubleshooting Guide
 
-**Version:** v0.2.0-beta  
+**Version:** v0.3.0  
 **Last Updated:** December 2024
 
 ---

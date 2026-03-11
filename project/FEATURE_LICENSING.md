@@ -1,6 +1,6 @@
 # Feature Licensing Matrix
 
-**Date:** January 2025  
+**Date:** February 2025  
 **Purpose:** Detailed breakdown of which features belong to which license tier
 
 ---
@@ -241,4 +241,4 @@ simple-tftpd/
 
 ---
 
-*Last Updated: January 2025*
+*Last Updated: February 2025*

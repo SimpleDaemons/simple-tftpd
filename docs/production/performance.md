@@ -1,6 +1,6 @@
 # Production Version Performance Tuning
 
-**Version:** 0.2.0-beta
+**Version:** 0.3.0
 **License:** Apache 2.0
 
 ---
@@ -75,4 +75,4 @@ See [Performance Tuning Guide](../shared/user-guide/performance-tuning.md) for d
 ---
 
 **Last Updated:** December 2024
-**Version:** 0.2.0-beta
+**Version:** 0.3.0

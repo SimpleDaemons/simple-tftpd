@@ -207,6 +207,6 @@ If you find any issues with the documentation or have suggestions for improvemen
 ---
 
 **Last Updated**: December 2024
-**Production Version**: 0.2.0-beta (~82% Complete)
+**Production Version**: 0.3.0 (Production Ready)
 **Enterprise Version**: Planned
 **Datacenter Version**: Planned

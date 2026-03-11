@@ -346,7 +346,7 @@ OPTIONS:
 EXAMPLES:
     $0                      # Build all tags (interactive)
     $0 --all                # Build all tags (interactive)
-    $0 --tag v0.2.1         # Build only v0.2.1
+    $0 --tag v0.3.0         # Build only v0.3.0
     $0 --all --yes          # Build all tags without prompts
     $0 --list               # List available tags
 

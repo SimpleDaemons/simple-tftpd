@@ -1,6 +1,6 @@
 # Production Version Operations Guide
 
-**Version:** 0.2.0-beta
+**Version:** 0.3.0
 **License:** Apache 2.0
 
 ---
@@ -74,4 +74,4 @@ See [Troubleshooting Guide](../shared/troubleshooting/README.md) for common issu
 ---
 
 **Last Updated:** December 2024
-**Version:** 0.2.0-beta
+**Version:** 0.3.0

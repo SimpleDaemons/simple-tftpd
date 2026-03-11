@@ -1,6 +1,6 @@
 # Simple TFTP Daemon - Production Deployment Guide
 
-**Version:** v0.2.0-beta  
+**Version:** v0.3.0  
 **Last Updated:** December 2024
 
 ---
@@ -56,7 +56,7 @@
 
 ```bash
 # Install from DEB package
-sudo dpkg -i simple-tftpd_0.2.0-beta_amd64.deb
+sudo dpkg -i simple-tftpd_0.3.0_amd64.deb
 sudo apt-get install -f  # Install dependencies if needed
 ```
 
@@ -64,25 +64,25 @@ sudo apt-get install -f  # Install dependencies if needed
 
 ```bash
 # Install from RPM package
-sudo rpm -ivh simple-tftpd-0.2.0-beta.x86_64.rpm
+sudo rpm -ivh simple-tftpd-0.3.0.x86_64.rpm
 ```
 
 #### macOS
 
 ```bash
 # Install from DMG
-open simple-tftpd-0.2.0-beta.dmg
+open simple-tftpd-0.3.0.dmg
 # Drag to Applications folder
 
 # Or install from PKG
-sudo installer -pkg simple-tftpd-0.2.0-beta.pkg -target /
+sudo installer -pkg simple-tftpd-0.3.0.pkg -target /
 ```
 
 ### Docker Installation
 
 ```bash
 # Pull image
-docker pull simpledaemons/simple-tftpd:0.2.0-beta
+docker pull simpledaemons/simple-tftpd:0.3.0
 
 # Run container
 docker run -d \
@@ -90,7 +90,7 @@ docker run -d \
   -p 69:69/udp \
   -v /var/tftp:/var/tftp:ro \
   -v /etc/simple-tftpd:/etc/simple-tftpd:ro \
-  simpledaemons/simple-tftpd:0.2.0-beta
+  simpledaemons/simple-tftpd:0.3.0
 ```
 
 ### Source Installation
