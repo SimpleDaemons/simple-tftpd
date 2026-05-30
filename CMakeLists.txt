@@ -205,6 +205,16 @@ if(ENABLE_STATIC_LINKING)
         # Force static linking for jsoncpp
         set(JSONCPP_USE_STATIC_LIBS TRUE)
     endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        find_library(STDCPP_STATIC_LIB NAMES libstdc++.a stdc++
+            PATHS /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib)
+        if(NOT STDCPP_STATIC_LIB OR NOT STDCPP_STATIC_LIB MATCHES "\\.a$")
+            message(FATAL_ERROR
+                "Static libstdc++ not found (required for ENABLE_STATIC_LINKING).\n"
+                "  RHEL/CentOS/Rocky: sudo dnf install libstdc++-static   (or: make deps)\n"
+                "  Debian/Ubuntu:     sudo apt-get install libstdc++-static")
+        endif()
+    endif()
 endif()
 
 # Install targets

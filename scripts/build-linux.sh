@@ -132,6 +132,12 @@ install_dependencies() {
                 libjsoncpp-dev \
                 libpthread-stubs0-dev
             
+            # Static linking and packaging (make static-package)
+            sudo apt-get install -y \
+                libstdc++-static \
+                dpkg-dev \
+                rpm
+
             # Install optional development tools
             sudo apt-get install -y \
                 clang-format \
@@ -178,6 +184,17 @@ install_dependencies() {
                     jsoncpp-devel
             fi
             
+            # Static linking and RPM packaging (make static-package)
+            if command_exists dnf; then
+                sudo dnf install -y \
+                    libstdc++-static \
+                    rpm-build
+            else
+                sudo yum install -y \
+                    libstdc++-static \
+                    rpm-build
+            fi
+
             # Install optional development tools
             if command_exists dnf; then
                 sudo dnf install -y \
@@ -213,6 +230,11 @@ install_dependencies() {
                 openssl \
                 jsoncpp
             
+            # Static linking and packaging
+            sudo pacman -S --needed --noconfirm \
+                rpm-tools \
+                libcap
+
             # Install optional development tools
             sudo pacman -S --needed --noconfirm \
                 clang \
@@ -241,6 +263,11 @@ install_dependencies() {
                 libopenssl-devel \
                 jsoncpp-devel
             
+            # Static linking and packaging
+            sudo zypper install -y \
+                libstdc++6-devel \
+                rpm-build
+
             # Install optional development tools
             sudo zypper install -y \
                 clang \

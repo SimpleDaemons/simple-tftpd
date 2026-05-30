@@ -389,10 +389,7 @@ ifeq ($(PLATFORM),macos)
 	sudo port install openssl jsoncpp cmake
 else ifeq ($(PLATFORM),linux)
 	@echo "Installing dependencies on Linux..."
-	sudo apt-get update
-	sudo apt-get install -y build-essential cmake libssl-dev libjsoncpp-dev
-	# For RPM-based systems
-	# sudo yum install -y gcc-c++ cmake openssl-devel jsoncpp-devel
+	$(SCRIPTS_DIR)/build-linux.sh --deps
 else ifeq ($(PLATFORM),windows)
 	@echo "Installing dependencies on Windows..."
 	@echo "Please run: scripts\\build-windows.bat --deps"
