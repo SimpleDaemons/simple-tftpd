@@ -1,5 +1,9 @@
 #!/bin/sh
-# SysV init script for simple-tftpd (delegates to systemd when available)
+#
+# simple-tftpd        Simple TFTP Daemon
+#
+# chkconfig: 2345 80 20
+# description: Lightweight TFTP server (RFC 1350)
 #
 ### BEGIN INIT INFO
 # Provides:          simple-tftpd
@@ -12,18 +16,13 @@
 ### END INIT INFO
 
 NAME=simple-tftpd
+SERVICE="${NAME}.service"
 DAEMON=/usr/bin/simple-tftpd
 CONFIG=/etc/simple-tftpd/simple-tftpd.conf
 PIDFILE=/run/simple-tftpd/simple-tftpd.pid
 RUNAS=simple-tftpd
 
-. /lib/lsb/init-functions 2>/dev/null || . /etc/rc.d/init.d/functions 2>/dev/null || true
-
-uses_systemd() {
-    command -v systemctl >/dev/null 2>&1 \
-        && [ -d /run/systemd/system ] \
-        && systemctl cat "${NAME}.service" >/dev/null 2>&1
-}
+. /etc/rc.d/init.d/functions 2>/dev/null || . /lib/lsb/init-functions 2>/dev/null || true
 
 if [ ! -x "$DAEMON" ]; then
     echo "$DAEMON not found or not executable" >&2
@@ -31,15 +30,38 @@ if [ ! -x "$DAEMON" ]; then
 fi
 if [ ! -f "$CONFIG" ]; then
     echo "Config file not found: $CONFIG" >&2
+    echo "Copy an example from /etc/simple-tftpd/examples/ or run: sudo simple-tftpd --test-config" >&2
     exit 1
 fi
 
-do_start() {
-    if uses_systemd; then
-        systemctl start "${NAME}.service"
-        return $?
-    fi
+systemd_unit_file() {
+    [ -f "/usr/lib/systemd/system/${SERVICE}" ] \
+        || [ -f "/lib/systemd/system/${SERVICE}" ] \
+        || [ -f "/etc/systemd/system/${SERVICE}" ]
+}
 
+uses_systemd() {
+    [ -x /usr/bin/systemctl ] && systemd_unit_file
+}
+
+# RHEL/CentOS/Rocky/Debian with systemd: delegate everything to systemctl
+if uses_systemd; then
+    case "$1" in
+        start|stop|restart|status|condrestart|try-restart)
+            exec /usr/bin/systemctl "$1" "$SERVICE"
+            ;;
+        force-reload|reload)
+            exec /usr/bin/systemctl reload "$SERVICE"
+            ;;
+        *)
+            echo "Usage: $0 {start|stop|restart|status|reload|force-reload}" >&2
+            exit 1
+            ;;
+    esac
+fi
+
+# Non-systemd fallback (SysV only)
+do_start() {
     mkdir -p "$(dirname "$PIDFILE")"
 
     if command -v start-stop-daemon >/dev/null 2>&1; then
@@ -51,27 +73,14 @@ do_start() {
 
     if command -v runuser >/dev/null 2>&1; then
         runuser -u "$RUNAS" -- "$DAEMON" --foreground start --config "$CONFIG" &
-        echo $! >"$PIDFILE"
-        return 0
+    else
+        su -s /bin/sh "$RUNAS" -c "$DAEMON --foreground start --config $CONFIG" &
     fi
-
-    su -s /bin/sh "$RUNAS" -c "$DAEMON --foreground start --config $CONFIG" &
     echo $! >"$PIDFILE"
     return 0
 }
 
 do_stop() {
-    if uses_systemd; then
-        systemctl stop "${NAME}.service"
-        return $?
-    fi
-
-    if command -v start-stop-daemon >/dev/null 2>&1; then
-        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 \
-            --pidfile "$PIDFILE" --exec "$DAEMON" || true
-        return 0
-    fi
-
     if [ -f "$PIDFILE" ]; then
         kill "$(cat "$PIDFILE")" 2>/dev/null || true
         rm -f "$PIDFILE"
@@ -82,29 +91,29 @@ do_stop() {
 
 case "$1" in
     start)
-        log_daemon_msg "Starting $NAME" "$NAME" 2>/dev/null || echo "Starting $NAME..."
         do_start
         rc=$?
-        log_end_msg "$rc" 2>/dev/null || { [ "$rc" -eq 0 ] || exit "$rc"; }
+        if command -v success >/dev/null 2>&1; then
+            [ "$rc" -eq 0 ] && success || failure
+        elif [ "$rc" -ne 0 ]; then
+            echo "Failed to start $NAME" >&2
+            exit "$rc"
+        else
+            echo "$NAME started"
+        fi
         ;;
     stop)
-        log_daemon_msg "Stopping $NAME" "$NAME" 2>/dev/null || echo "Stopping $NAME..."
         do_stop
         rc=$?
-        log_end_msg "$rc" 2>/dev/null || { [ "$rc" -eq 0 ] || exit "$rc"; }
+        if command -v success >/dev/null 2>&1; then
+            [ "$rc" -eq 0 ] && success || failure
+        fi
         ;;
     restart|force-reload)
         do_stop
         do_start
         ;;
     status)
-        if uses_systemd; then
-            systemctl status "${NAME}.service" --no-pager
-            exit $?
-        fi
-        if command -v status_of_proc >/dev/null 2>&1; then
-            status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
-        fi
         if pgrep -x simple-tftpd >/dev/null 2>&1; then
             echo "$NAME is running"
             exit 0
