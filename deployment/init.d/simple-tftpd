@@ -1,5 +1,5 @@
 #!/bin/sh
-# SysV init script for simple-tftpd (works alongside systemd on Linux)
+# SysV init script for simple-tftpd (delegates to systemd when available)
 #
 ### BEGIN INIT INFO
 # Provides:          simple-tftpd
@@ -19,47 +19,86 @@ RUNAS=simple-tftpd
 
 . /lib/lsb/init-functions 2>/dev/null || . /etc/rc.d/init.d/functions 2>/dev/null || true
 
-test -x "$DAEMON" || exit 0
-test -f "$CONFIG" || exit 0
+uses_systemd() {
+    command -v systemctl >/dev/null 2>&1 \
+        && [ -d /run/systemd/system ] \
+        && systemctl cat "${NAME}.service" >/dev/null 2>&1
+}
+
+if [ ! -x "$DAEMON" ]; then
+    echo "$DAEMON not found or not executable" >&2
+    exit 1
+fi
+if [ ! -f "$CONFIG" ]; then
+    echo "Config file not found: $CONFIG" >&2
+    exit 1
+fi
 
 do_start() {
+    if uses_systemd; then
+        systemctl start "${NAME}.service"
+        return $?
+    fi
+
     mkdir -p "$(dirname "$PIDFILE")"
+
     if command -v start-stop-daemon >/dev/null 2>&1; then
         start-stop-daemon --start --quiet --oknodo --background --make-pidfile \
             --pidfile "$PIDFILE" --chuid "$RUNAS:$RUNAS" \
             --exec "$DAEMON" -- --foreground start --config "$CONFIG"
-    else
-        su -s /bin/sh "$RUNAS" -c "$DAEMON --foreground start --config $CONFIG" &
+        return $?
     fi
+
+    if command -v runuser >/dev/null 2>&1; then
+        runuser -u "$RUNAS" -- "$DAEMON" --foreground start --config "$CONFIG" &
+        echo $! >"$PIDFILE"
+        return 0
+    fi
+
+    su -s /bin/sh "$RUNAS" -c "$DAEMON --foreground start --config $CONFIG" &
+    echo $! >"$PIDFILE"
+    return 0
 }
 
 do_stop() {
+    if uses_systemd; then
+        systemctl stop "${NAME}.service"
+        return $?
+    fi
+
     if command -v start-stop-daemon >/dev/null 2>&1; then
         start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 \
             --pidfile "$PIDFILE" --exec "$DAEMON" || true
-    else
-        "$DAEMON" stop 2>/dev/null || pkill -x simple-tftpd 2>/dev/null || true
+        return 0
     fi
+
+    if [ -f "$PIDFILE" ]; then
+        kill "$(cat "$PIDFILE")" 2>/dev/null || true
+        rm -f "$PIDFILE"
+    fi
+    pkill -x simple-tftpd 2>/dev/null || true
+    return 0
 }
 
 case "$1" in
     start)
         log_daemon_msg "Starting $NAME" "$NAME" 2>/dev/null || echo "Starting $NAME..."
         do_start
-        log_end_msg $? 2>/dev/null || true
+        rc=$?
+        log_end_msg "$rc" 2>/dev/null || { [ "$rc" -eq 0 ] || exit "$rc"; }
         ;;
     stop)
         log_daemon_msg "Stopping $NAME" "$NAME" 2>/dev/null || echo "Stopping $NAME..."
         do_stop
-        log_end_msg $? 2>/dev/null || true
+        rc=$?
+        log_end_msg "$rc" 2>/dev/null || { [ "$rc" -eq 0 ] || exit "$rc"; }
         ;;
     restart|force-reload)
         do_stop
         do_start
         ;;
     status)
-        if command -v systemctl >/dev/null 2>&1 \
-            && systemctl cat "${NAME}.service" >/dev/null 2>&1; then
+        if uses_systemd; then
             systemctl status "${NAME}.service" --no-pager
             exit $?
         fi

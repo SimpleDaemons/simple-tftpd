@@ -413,7 +413,7 @@ if(ENABLE_PACKAGING)
         else()
             set(CPACK_RPM_PACKAGE_REQUIRES "openssl-libs, jsoncpp")
         endif()
-        set(CPACK_RPM_PACKAGE_SUGGESTS "systemd")
+        set(CPACK_RPM_PACKAGE_SUGGESTS "systemd, libcap")
         set(CPACK_RPM_PACKAGE_CONFLICTS "ntp")
         set(CPACK_RPM_PACKAGE_PROVIDES "${PROJECT_NAME}")
 
