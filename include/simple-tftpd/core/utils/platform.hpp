@@ -64,8 +64,12 @@ namespace simple_tftpd {
     // Unix-specific constants
     #define INVALID_SOCKET_VALUE -1
     
-#elif defined(__linux__)
-    #define PLATFORM_LINUX
+#elif defined(__linux__) || defined(__FreeBSD__)
+    #if defined(__linux__)
+        #define PLATFORM_LINUX
+    #else
+        #define PLATFORM_FREEBSD
+    #endif
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
