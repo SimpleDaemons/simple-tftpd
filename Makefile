@@ -184,14 +184,26 @@ CPACK_PACKAGES_CMD = \
 	( ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg 2>/dev/null || \
 	  echo "  No packages found in $(DIST_DIR)" )
 else ifeq ($(PLATFORM),linux)
+# Build DEB on Debian/Ubuntu and RPM on RHEL/CentOS; skip formats when tools are missing
 CPACK_PACKAGES_CMD = \
 	@mkdir -p $(DIST_DIR) && \
 	echo "Building Linux packages..." && \
-	cd $(BUILD_DIR) && cpack -G RPM && \
-	cd $(BUILD_DIR) && cpack -G DEB && \
-	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm $(DIST_DIR)/ 2>/dev/null || true && \
-	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/ 2>/dev/null || true && \
-	echo "Linux packages created: RPM and DEB" && \
+	if command -v rpmbuild >/dev/null 2>&1; then \
+		echo "  Building RPM..." && \
+		cd $(BUILD_DIR) && cpack -G RPM && \
+		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm $(DIST_DIR)/ 2>/dev/null || true && \
+		echo "  RPM package created"; \
+	else \
+		echo "  Skipping RPM (rpmbuild not available)"; \
+	fi && \
+	if command -v dpkg-deb >/dev/null 2>&1; then \
+		echo "  Building DEB..." && \
+		cd $(BUILD_DIR) && cpack -G DEB && \
+		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/ 2>/dev/null || true && \
+		echo "  DEB package created"; \
+	else \
+		echo "  Skipping DEB (dpkg-deb not available)"; \
+	fi && \
 	( ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm 2>/dev/null || \
 	  echo "  No packages found in $(DIST_DIR)" )
 else ifeq ($(PLATFORM),windows)
