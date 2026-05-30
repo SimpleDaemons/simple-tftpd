@@ -56,10 +56,10 @@ if(GTest_FOUND)
     # Add unit tests
     add_test(NAME simple-tftpd-unit-tests COMMAND simple-tftpd-tests)
     
-    # Set test properties
+    # Set test properties (run from build root; bin/ may not exist)
     set_tests_properties(simple-tftpd-unit-tests PROPERTIES
         TIMEOUT 300
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
     
     # Valgrind support for memory leak detection
@@ -75,7 +75,7 @@ if(GTest_FOUND)
                     $<TARGET_FILE:simple-tftpd-tests>)
             set_tests_properties(simple-tftpd-unit-tests-valgrind PROPERTIES
                 TIMEOUT 600
-                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             )
             message(STATUS "Valgrind memory leak detection enabled for tests")
         else()
@@ -120,7 +120,7 @@ if(GTest_FOUND)
     # Set test properties
     set_tests_properties(simple-tftpd-integration-tests PROPERTIES
         TIMEOUT 600
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
     
 else()

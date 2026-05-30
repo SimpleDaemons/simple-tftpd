@@ -166,10 +166,11 @@ else
 endif
 
 # Generic package target (platform-specific)
-package: build
+# Shared CPack step — run after build/ or static-build/ has configured and built
+define RUN_CPACK_PACKAGES
+	@mkdir -p $(DIST_DIR)
 ifeq ($(PLATFORM),macos)
 	@echo "Building macOS packages..."
-	@mkdir -p $(DIST_DIR)
 	cd $(BUILD_DIR) && cpack -G DragNDrop
 	cd $(BUILD_DIR) && cpack -G productbuild
 	@echo "Moving packages to $(DIST_DIR)..."
@@ -186,15 +187,15 @@ ifeq ($(PLATFORM),macos)
 		echo "  Warning: No PKG package found"; \
 	fi
 	@echo "macOS packages created: DMG and PKG"
-	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.* 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
+	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.{dmg,pkg} 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
 else ifeq ($(PLATFORM),linux)
 	@echo "Building Linux packages..."
-	@mkdir -p $(DIST_DIR)
 	cd $(BUILD_DIR) && cpack -G RPM
 	cd $(BUILD_DIR) && cpack -G DEB
 	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm $(DIST_DIR)/ 2>/dev/null || true
 	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/ 2>/dev/null || true
 	@echo "Linux packages created: RPM and DEB"
+	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.{deb,rpm} 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
 else ifeq ($(PLATFORM),windows)
 	@echo "Building Windows packages..."
 	@$(MKDIR) $(DIST_DIR)
@@ -203,9 +204,14 @@ else ifeq ($(PLATFORM),windows)
 	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.msi $(DIST_DIR)/ 2>/dev/null || true
 	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.zip $(DIST_DIR)/ 2>/dev/null || true
 	@echo "Windows packages created: MSI and ZIP"
+	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.{msi,zip} 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
 else
 	@echo "Package generation not supported on this platform"
 endif
+endef
+
+package: build
+	$(RUN_CPACK_PACKAGES)
 
 # Development targets
 dev-build: $(BUILD_DIR)-dir
@@ -238,45 +244,12 @@ else
 	cd $(BUILD_DIR) && make test
 endif
 
-# Create static binary package
+# Create static binary packages (platform installers: deb/rpm, dmg/pkg, msi/zip)
 static-package: static-build
-	@echo "Creating static binary package..."
-	@mkdir -p $(DIST_DIR)
-ifeq ($(PLATFORM),windows)
-	@echo "Creating Windows static binary ZIP..."
-	@mkdir -p $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-windows
-	@cp $(BUILD_DIR)/$(PROJECT_NAME).exe $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-windows/
-	@cp README.md $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-windows/
-	@cp LICENSE $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-windows/
-	@cp -r config $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-windows/
-	@cd $(DIST_DIR) && powershell -Command "Compress-Archive -Path '$(PROJECT_NAME)-$(VERSION)-static-windows' -DestinationPath '$(PROJECT_NAME)-$(VERSION)-static-windows.zip' -Force"
-	@rm -rf $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-windows
-	@echo "Windows static binary package created: $(PROJECT_NAME)-$(VERSION)-static-windows.zip"
-else ifeq ($(PLATFORM),macos)
-	@echo "Creating macOS static binary TAR.GZ..."
-	@mkdir -p $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-macos
-	@cp $(BUILD_DIR)/$(PROJECT_NAME) $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-macos/
-	@cp README.md $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-macos/
-	@cp LICENSE $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-macos/
-	@cp -r config $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-macos/
-	@cd $(DIST_DIR) && tar -czf $(PROJECT_NAME)-$(VERSION)-static-macos.tar.gz $(PROJECT_NAME)-$(VERSION)-static-macos/
-	@rm -rf $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-macos
-	@echo "macOS static binary package created: $(PROJECT_NAME)-$(VERSION)-static-macos.tar.gz"
-else ifeq ($(PLATFORM),linux)
-	@echo "Creating Linux static binary TAR.GZ..."
-	@mkdir -p $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-linux
-	@cp $(BUILD_DIR)/$(PROJECT_NAME) $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-linux/
-	@cp README.md $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-linux/
-	@cp LICENSE $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-linux/
-	@cp -r config $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-linux/
-	@cd $(DIST_DIR) && tar -czf $(PROJECT_NAME)-$(VERSION)-static-linux.tar.gz $(PROJECT_NAME)-$(VERSION)-static-linux/
-	@rm -rf $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-static-linux
-	@echo "Linux static binary package created: $(PROJECT_NAME)-$(VERSION)-static-linux.tar.gz"
-else
-	@echo "Static binary package generation not supported on this platform"
-endif
+	@echo "Creating static binary packages..."
+	$(RUN_CPACK_PACKAGES)
 
-# Create static binary ZIP (cross-platform)
+# Create static binary ZIP (cross-platform archive)
 static-zip: static-build
 	@echo "Creating static binary ZIP package..."
 	@mkdir -p $(DIST_DIR)
@@ -534,8 +507,8 @@ help:
 	@echo "Static binary targets:"
 	@echo "  static-build     - Build static binary (self-contained)"
 	@echo "  static-test      - Run tests on static binary"
-	@echo "  static-package   - Create platform-specific static binary package"
-	@echo "  static-zip       - Create static binary ZIP package"
+	@echo "  static-package   - Create platform installer packages (DEB/RPM, DMG/PKG, MSI)"
+	@echo "  static-zip       - Create portable static binary archive (ZIP)"
 	@echo "  static-all       - Create all static binary formats"
 	@echo ""
 	@echo "Dependency management:"
@@ -608,8 +581,8 @@ endif
 	@echo "Static binary targets:"
 	@echo "  static-build     - Build static binary (self-contained)"
 	@echo "  static-test      - Run tests on static binary"
-	@echo "  static-package   - Create platform-specific static binary package"
-	@echo "  static-zip       - Create static binary ZIP package"
+	@echo "  static-package   - Create platform installer packages (DEB/RPM, DMG/PKG, MSI)"
+	@echo "  static-zip       - Create portable static binary archive (ZIP)"
 	@echo "  static-all       - Create all static binary formats"
 	@echo "  coverage         - Generate coverage report"
 	@echo "  format           - Format source code"

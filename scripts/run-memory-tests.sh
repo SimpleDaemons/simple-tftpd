@@ -55,8 +55,7 @@ if [ -d "$BUILD_DIR" ]; then
     cmake .. \
         -DCMAKE_BUILD_TYPE=Debug \
         -DENABLE_TESTS=ON \
-        -DENABLE_SANITIZER=ON \
-        -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer -g"
+        -DENABLE_SANITIZER=ON
     
     echo ""
     echo "Building with AddressSanitizer..."
@@ -67,8 +66,13 @@ if [ -d "$BUILD_DIR" ]; then
     echo "Note: AddressSanitizer will report memory leaks if any are found."
     echo ""
     
-    # Set AddressSanitizer options
-    export ASAN_OPTIONS="detect_leaks=1:halt_on_error=0:abort_on_error=0:print_stats=1"
+    # Set AddressSanitizer options (detect_leaks not supported on macOS; use 1 on Linux)
+    if [[ "$PLATFORM" == "macos" ]]; then
+        export ASAN_OPTIONS="detect_leaks=0:halt_on_error=0:abort_on_error=0:print_stats=1"
+        echo "Note: Leak detection (detect_leaks) is not supported on macOS; use Linux + Valgrind for full leak checking."
+    else
+        export ASAN_OPTIONS="detect_leaks=1:halt_on_error=0:abort_on_error=0:print_stats=1"
+    fi
     
     # Run tests
     if ctest --output-on-failure 2>&1 | tee asan-test-results.log; then

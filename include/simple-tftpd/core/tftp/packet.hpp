@@ -113,6 +113,10 @@ public:
 protected:
     TftpOpcode opcode_;
     std::vector<uint8_t> data_;
+    /** Size of raw data when constructed from buffer (0 when constructed from params) */
+    size_t parsed_size_ = 0;
+    /** True when constructed from raw data (TftpPacket(data, size)); used for validity */
+    bool from_raw_data_ = false;
     
     /**
      * @brief Parse opcode from raw data

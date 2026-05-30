@@ -25,6 +25,8 @@ TftpPacket::TftpPacket() : opcode_(TftpOpcode::ERROR) {}
 TftpPacket::TftpPacket(TftpOpcode opcode) : opcode_(opcode) {}
 
 TftpPacket::TftpPacket(const uint8_t* data, size_t size) : opcode_(TftpOpcode::ERROR) {
+    parsed_size_ = size;
+    from_raw_data_ = true;
     parse(data, size);
 }
 
@@ -65,7 +67,14 @@ std::vector<uint8_t> TftpPacket::serialize() const {
 }
 
 bool TftpPacket::isValid() const {
-    return opcode_ != TftpOpcode::ERROR;
+    // All defined TFTP opcodes (RRQ=1 through OACK=6) are valid at base level
+    const auto o = static_cast<uint16_t>(opcode_);
+    if (o < static_cast<uint16_t>(TftpOpcode::RRQ) ||
+        o > static_cast<uint16_t>(TftpOpcode::OACK)) {
+        return false;
+    }
+    // When constructed from raw data, minimum 2 bytes (opcode) required
+    return !from_raw_data_ || parsed_size_ >= 2;
 }
 
 std::string TftpPacket::getTypeString() const {
@@ -370,7 +379,8 @@ std::vector<uint8_t> TftpDataPacket::serialize() const {
 }
 
 bool TftpDataPacket::isValid() const {
-    return TftpPacket::isValid() && opcode_ == TftpOpcode::DATA;
+    return TftpPacket::isValid() && opcode_ == TftpOpcode::DATA &&
+           (parsed_size_ == 0 || parsed_size_ >= 4);  // 0 = from params; else min 4 bytes
 }
 
 std::string TftpDataPacket::getTypeString() const {
@@ -431,7 +441,8 @@ std::vector<uint8_t> TftpAckPacket::serialize() const {
 }
 
 bool TftpAckPacket::isValid() const {
-    return TftpPacket::isValid() && opcode_ == TftpOpcode::ACK;
+    return TftpPacket::isValid() && opcode_ == TftpOpcode::ACK &&
+           (parsed_size_ == 0 || parsed_size_ == 4);  // 0 = from params; else exactly 4
 }
 
 std::string TftpAckPacket::getTypeString() const {
