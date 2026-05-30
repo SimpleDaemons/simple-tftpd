@@ -621,7 +621,7 @@ bool TftpServer::setSocketOptions() {
     }
 
     // Set socket receive timeout
-    struct timeval timeout;
+    struct ::timeval timeout;
     timeout.tv_sec = 1;  // 1 second timeout
     timeout.tv_usec = 0;
 

@@ -19,32 +19,12 @@
 #include <string>
 #include <cstdint>
 
-namespace simple_tftpd {
-
-/**
- * @brief Platform abstraction layer
- * 
- * This header provides platform-specific definitions and abstractions
- * for the TFTP daemon to work across different operating systems.
- */
-
+// System headers must be included at global scope (not inside a C++ namespace).
 #ifdef _WIN32
     #define PLATFORM_WINDOWS
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #include <windows.h>
-    
-    // Windows-specific types
-    using socket_t = SOCKET;
-    using ssize_t = SSIZE_T;
-    
-    // Windows socket error handling
-    #define SOCKET_ERROR_CODE WSAGetLastError()
-    #define CLOSE_SOCKET closesocket
-    
-    // Windows-specific constants
-    #define INVALID_SOCKET_VALUE INVALID_SOCKET
-    
 #elif defined(__APPLE__)
     #define PLATFORM_MACOS
     #include <sys/socket.h>
@@ -54,17 +34,6 @@ namespace simple_tftpd {
     #include <unistd.h>
     #include <fcntl.h>
     #include <errno.h>
-    
-    // Unix-like types
-    using socket_t = int;
-    
-    // Unix socket error handling
-    #define SOCKET_ERROR_CODE errno
-    #define CLOSE_SOCKET close
-    
-    // Unix-specific constants
-    #define INVALID_SOCKET_VALUE -1
-    
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(SIMPLE_TFTPD_FREEBSD) || \
       (defined(__unix__) && !defined(__APPLE__))
     #if defined(__linux__)
@@ -81,19 +50,29 @@ namespace simple_tftpd {
     #include <unistd.h>
     #include <fcntl.h>
     #include <errno.h>
-    
-    // Unix-like types
-    using socket_t = int;
-    
-    // Unix socket error handling
-    #define SOCKET_ERROR_CODE errno
-    #define CLOSE_SOCKET close
-    
-    // Unix-specific constants
-    #define INVALID_SOCKET_VALUE -1
-    
 #else
     #error "Unsupported platform"
+#endif
+
+namespace simple_tftpd {
+
+/**
+ * @brief Platform abstraction layer
+ *
+ * Provides platform-specific types and macros for the TFTP daemon.
+ */
+
+#ifdef PLATFORM_WINDOWS
+    using socket_t = SOCKET;
+    using ssize_t = SSIZE_T;
+    #define SOCKET_ERROR_CODE WSAGetLastError()
+    #define CLOSE_SOCKET closesocket
+    #define INVALID_SOCKET_VALUE INVALID_SOCKET
+#else
+    using socket_t = int;
+    #define SOCKET_ERROR_CODE errno
+    #define CLOSE_SOCKET close
+    #define INVALID_SOCKET_VALUE -1
 #endif
 
 // Common platform-independent types
