@@ -1,15 +1,23 @@
 #!/bin/bash
-# Pre-removal script for simple-tftpd
+# Pre-removal script for simple-tftpd (Debian)
 
 set -e
 
 PROJECT_NAME="simple-tftpd"
 
 if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
-    # Stop service before removal
-    systemctl stop "$simple-tftpd" 2>/dev/null || true
-    systemctl disable "$simple-tftpd" 2>/dev/null || true
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl stop "${PROJECT_NAME}.service" 2>/dev/null || true
+        systemctl disable "${PROJECT_NAME}.service" 2>/dev/null || true
+    fi
+
+    if [ -x /etc/init.d/${PROJECT_NAME} ]; then
+        /etc/init.d/${PROJECT_NAME} stop 2>/dev/null || true
+    fi
+
+    if command -v update-rc.d >/dev/null 2>&1; then
+        update-rc.d "${PROJECT_NAME}" remove 2>/dev/null || true
+    fi
 fi
 
 exit 0
-

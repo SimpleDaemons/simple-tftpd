@@ -7,9 +7,9 @@ PartOf=simple-tftpd.target
 
 [Service]
 Type=simple
-User=tftp
-Group=tftp
-ExecStart=/usr/bin/simple-tftpd start --config /etc/simple-tftpd/instances/%i.conf
+User=simple-tftpd
+Group=simple-tftpd
+ExecStart=/usr/bin/simple-tftpd --foreground start --config /etc/simple-tftpd/instances/%i.conf
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=5

@@ -1,0 +1,74 @@
+#!/bin/sh
+# SysV init script for simple-tftpd (works alongside systemd on Linux)
+#
+### BEGIN INIT INFO
+# Provides:          simple-tftpd
+# Required-Start:    $remote_fs $network $time
+# Required-Stop:     $remote_fs $network $time
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Simple TFTP Daemon
+# Description:       Lightweight TFTP server (RFC 1350)
+### END INIT INFO
+
+NAME=simple-tftpd
+DAEMON=/usr/bin/simple-tftpd
+CONFIG=/etc/simple-tftpd/simple-tftpd.conf
+PIDFILE=/run/simple-tftpd/simple-tftpd.pid
+
+. /lib/lsb/init-functions 2>/dev/null || . /etc/rc.d/init.d/functions 2>/dev/null || true
+
+test -x "$DAEMON" || exit 0
+test -f "$CONFIG" || exit 0
+
+do_start() {
+    if command -v start-stop-daemon >/dev/null 2>&1; then
+        start-stop-daemon --start --quiet --oknodo --pidfile "$PIDFILE" \
+            --exec "$DAEMON" -- --foreground start --config "$CONFIG"
+    else
+        "$DAEMON" --daemon start --config "$CONFIG"
+    fi
+}
+
+do_stop() {
+    if command -v start-stop-daemon >/dev/null 2>&1; then
+        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 \
+            --pidfile "$PIDFILE" --exec "$DAEMON" || true
+    else
+        "$DAEMON" stop 2>/dev/null || killall simple-tftpd 2>/dev/null || true
+    fi
+}
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting $NAME" "$NAME" 2>/dev/null || echo "Starting $NAME..."
+        do_start
+        log_end_msg $? 2>/dev/null || true
+        ;;
+    stop)
+        log_daemon_msg "Stopping $NAME" "$NAME" 2>/dev/null || echo "Stopping $NAME..."
+        do_stop
+        log_end_msg $? 2>/dev/null || true
+        ;;
+    restart|force-reload)
+        do_stop
+        do_start
+        ;;
+    status)
+        if command -v status_of_proc >/dev/null 2>&1; then
+            status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+        fi
+        if pgrep -x simple-tftpd >/dev/null 2>&1; then
+            echo "$NAME is running"
+            exit 0
+        fi
+        echo "$NAME is not running"
+        exit 3
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|force-reload|status}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

@@ -1,17 +1,30 @@
 [Unit]
-Description=Simple TFTP Daemon - A lightweight and secure TFTP server
-After=network.target
+Description=Simple TFTP Daemon
+Documentation=file:/usr/share/doc/simple-tftpd/README.md
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=simple-tftpd
 Group=simple-tftpd
-ExecStart=/usr/local/bin/simple-tftpd
-Restart=always
+ExecStart=/usr/bin/simple-tftpd --foreground start --config /etc/simple-tftpd/simple-tftpd.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=simple-tftpd
+
+StateDirectory=simple-tftpd
+RuntimeDirectory=simple-tftpd
+LogsDirectory=simple-tftpd
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/simple-tftpd /var/log/simple-tftpd /var/tftp
 
 [Install]
 WantedBy=multi-user.target

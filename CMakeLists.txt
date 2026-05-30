@@ -5,6 +5,14 @@
 cmake_minimum_required(VERSION 3.16)
 project(simple-tftpd VERSION 0.3.0 LANGUAGES CXX DESCRIPTION "A lightweight, cross-platform TFTP daemon")
 
+# FHS install paths (/usr/bin, /etc/simple-tftpd, …)
+include(GNUInstallDirs)
+if(UNIX AND NOT APPLE)
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Installation prefix" FORCE)
+    endif()
+endif()
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -203,26 +211,42 @@ endif()
 
 # Install targets
 install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(DIRECTORY include/
-    DESTINATION include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
 
-# Install configuration files
-install(DIRECTORY config/
-    DESTINATION etc/${PROJECT_NAME}
-    FILES_MATCHING PATTERN "*.conf" PATTERN "*.example"
+# Configuration: /etc/simple-tftpd/ with examples
+install(FILES config/simple-tftpd.conf.example
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}
+)
+install(FILES deployment/configs/simple-tftpd.conf
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}
+    RENAME simple-tftpd.conf.example.json
+)
+install(DIRECTORY config/examples/
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}/examples
+    FILES_MATCHING PATTERN "*.example"
 )
 
-# Install service files
+install(FILES LICENSE README.md
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}
+)
+
+# Linux service integration (systemd + SysV init)
 if(UNIX AND NOT APPLE)
-    install(FILES deployment/systemd/${PROJECT_NAME}.service
-        DESTINATION lib/systemd/system
+    install(FILES
+        deployment/systemd/${PROJECT_NAME}.service
+        deployment/systemd/${PROJECT_NAME}@.service
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system
+    )
+    install(PROGRAMS deployment/init.d/${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/init.d
     )
 elseif(APPLE)
     # Install launchd plist file
@@ -360,6 +384,19 @@ if(ENABLE_PACKAGING)
         set(CPACK_RPM_PACKAGE_SUGGESTS "systemd")
         set(CPACK_RPM_PACKAGE_CONFLICTS "ntp")
         set(CPACK_RPM_PACKAGE_PROVIDES "${PROJECT_NAME}")
+
+        set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+        set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+            "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/deb/postinst"
+            "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/deb/prerm"
+            "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/deb/postrm"
+        )
+        set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE
+            "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/rpm/postinstall.sh")
+        set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE
+            "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/rpm/preuninstall.sh")
+        set(CPACK_RPM_POST_UNINSTALL_SCRIPT_FILE
+            "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/rpm/postuninstall.sh")
     endif()
 
     # Set package architecture and determine architecture string
