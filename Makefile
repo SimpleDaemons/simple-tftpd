@@ -166,52 +166,51 @@ else
 endif
 
 # Generic package target (platform-specific)
-# Shared CPack step — run after build/ or static-build/ has configured and built
-define RUN_CPACK_PACKAGES
-	@mkdir -p $(DIST_DIR)
+# CPack recipes — ifeq must be at parse time (not inside define/recipe expansion)
 ifeq ($(PLATFORM),macos)
-	@echo "Building macOS packages..."
-	cd $(BUILD_DIR) && cpack -G DragNDrop
-	cd $(BUILD_DIR) && cpack -G productbuild
-	@echo "Moving packages to $(DIST_DIR)..."
-	@if ls $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg 1> /dev/null 2>&1; then \
-		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/ && \
-		echo "  DMG package moved"; \
-	else \
-		echo "  Warning: No DMG package found"; \
-	fi
-	@if ls $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg 1> /dev/null 2>&1; then \
-		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg $(DIST_DIR)/ && \
-		echo "  PKG package moved"; \
-	else \
-		echo "  Warning: No PKG package found"; \
-	fi
-	@echo "macOS packages created: DMG and PKG"
-	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.{dmg,pkg} 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
+CPACK_PACKAGES_CMD = \
+	@mkdir -p $(DIST_DIR) && \
+	echo "Building macOS packages..." && \
+	cd $(BUILD_DIR) && cpack -G DragNDrop && \
+	cd $(BUILD_DIR) && cpack -G productbuild && \
+	echo "Moving packages to $(DIST_DIR)..." && \
+	( ls $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg 1>/dev/null 2>&1 && \
+	  mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/ && echo "  DMG package moved" ) || \
+	  echo "  Warning: No DMG package found" && \
+	( ls $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg 1>/dev/null 2>&1 && \
+	  mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg $(DIST_DIR)/ && echo "  PKG package moved" ) || \
+	  echo "  Warning: No PKG package found" && \
+	echo "macOS packages created: DMG and PKG" && \
+	( ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.pkg 2>/dev/null || \
+	  echo "  No packages found in $(DIST_DIR)" )
 else ifeq ($(PLATFORM),linux)
-	@echo "Building Linux packages..."
-	cd $(BUILD_DIR) && cpack -G RPM
-	cd $(BUILD_DIR) && cpack -G DEB
-	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm $(DIST_DIR)/ 2>/dev/null || true
-	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/ 2>/dev/null || true
-	@echo "Linux packages created: RPM and DEB"
-	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.{deb,rpm} 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
+CPACK_PACKAGES_CMD = \
+	@mkdir -p $(DIST_DIR) && \
+	echo "Building Linux packages..." && \
+	cd $(BUILD_DIR) && cpack -G RPM && \
+	cd $(BUILD_DIR) && cpack -G DEB && \
+	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm $(DIST_DIR)/ 2>/dev/null || true && \
+	mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/ 2>/dev/null || true && \
+	echo "Linux packages created: RPM and DEB" && \
+	( ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm 2>/dev/null || \
+	  echo "  No packages found in $(DIST_DIR)" )
 else ifeq ($(PLATFORM),windows)
-	@echo "Building Windows packages..."
-	@$(MKDIR) $(DIST_DIR)
-	cd $(BUILD_DIR) && cpack -G WIX
-	cd $(BUILD_DIR) && cpack -G ZIP
-	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.msi $(DIST_DIR)/ 2>/dev/null || true
-	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.zip $(DIST_DIR)/ 2>/dev/null || true
-	@echo "Windows packages created: MSI and ZIP"
-	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.{msi,zip} 2>/dev/null || echo "  No packages found in $(DIST_DIR)"
+CPACK_PACKAGES_CMD = \
+	@$(MKDIR) $(DIST_DIR) && \
+	echo "Building Windows packages..." && \
+	cd $(BUILD_DIR) && cpack -G WIX && \
+	cd $(BUILD_DIR) && cpack -G ZIP && \
+	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.msi $(DIST_DIR)/ 2>/dev/null || true && \
+	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.zip $(DIST_DIR)/ 2>/dev/null || true && \
+	echo "Windows packages created: MSI and ZIP" && \
+	( ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.msi $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.zip 2>/dev/null || \
+	  echo "  No packages found in $(DIST_DIR)" )
 else
-	@echo "Package generation not supported on this platform"
+CPACK_PACKAGES_CMD = @echo "Package generation not supported on this platform"
 endif
-endef
 
 package: build
-	$(RUN_CPACK_PACKAGES)
+	$(CPACK_PACKAGES_CMD)
 
 # Development targets
 dev-build: $(BUILD_DIR)-dir
@@ -247,7 +246,7 @@ endif
 # Create static binary packages (platform installers: deb/rpm, dmg/pkg, msi/zip)
 static-package: static-build
 	@echo "Creating static binary packages..."
-	$(RUN_CPACK_PACKAGES)
+	$(CPACK_PACKAGES_CMD)
 
 # Create static binary ZIP (cross-platform archive)
 static-zip: static-build
