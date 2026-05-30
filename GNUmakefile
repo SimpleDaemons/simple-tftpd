@@ -239,7 +239,7 @@ else ifeq ($(PLATFORM),freebsd)
 CPACK_PACKAGES_CMD = \
 	@mkdir -p $(DIST_DIR) && \
 	echo "Building FreeBSD packages..." && \
-	( cd $(BUILD_DIR) && cpack -G FreeBSD ) && \
+	( cd $(BUILD_DIR) && cpack -G FREEBSD ) && \
 	( ls $(BUILD_DIR)/*.pkg 1>/dev/null 2>&1 && mv $(BUILD_DIR)/*.pkg $(DIST_DIR)/ && \
 	  echo "  FreeBSD package created" ) || echo "  Warning: No FreeBSD package found" && \
 	( ls -lh $(DIST_DIR)/*.pkg 2>/dev/null || echo "  No packages found in $(DIST_DIR)" )

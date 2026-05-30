@@ -378,9 +378,17 @@ if(ENABLE_PACKAGING)
         set(CPACK_PRODUCTBUILD_PACKAGE_NAME "${PROJECT_NAME}")
 
     elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        set(CPACK_GENERATOR "FreeBSD")
+        set(CPACK_GENERATOR "FREEBSD")
         set(CPACK_PACKAGING_INSTALL_PREFIX "/")
         set(CPACK_SET_DESTDIR TRUE)
+        set(CPACK_FREEBSD_PACKAGE_MAINTAINER "SimpleDaemons <info@simpledaemons.com>")
+        set(CPACK_FREEBSD_PACKAGE_ORIGIN "net/${PROJECT_NAME}")
+        set(CPACK_FREEBSD_PACKAGE_LICENSE "APACHE20")
+        if(ENABLE_STATIC_LINKING)
+            set(CPACK_FREEBSD_PACKAGE_RUNTIME_DEPENDS "")
+        else()
+            set(CPACK_FREEBSD_PACKAGE_RUNTIME_DEPENDS "openssl jsoncpp")
+        endif()
 
     else()
         # Linux DEB and RPM packages
@@ -478,6 +486,8 @@ if(ENABLE_PACKAGING)
             endif()
         endif()
         message(STATUS "Detected macOS platform: ${PLATFORM_ID}")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        set(PLATFORM_ID "freebsd")
     elseif(UNIX)
         # Try to detect Linux distribution for proper naming
         set(PLATFORM_ID "linux-generic")  # Default for RPM-based
@@ -507,6 +517,9 @@ if(ENABLE_PACKAGING)
         # Explicitly set generator-specific file names for macOS
         set(CPACK_DMG_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}")
         set(CPACK_PRODUCTBUILD_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}-${PACKAGE_ARCH}")
+        set(CPACK_FREEBSD_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-${PLATFORM_ID}-${PACKAGE_ARCH}")
     elseif(UNIX)
         # Linux packages: simple-tftpd-0.2.1-linux-debian-amd64.deb / .rpm
         # CPack automatically adds architecture for DEB/RPM, so we set the base name
