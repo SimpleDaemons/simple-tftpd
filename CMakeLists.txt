@@ -7,7 +7,7 @@ project(simple-tftpd VERSION 0.3.0 LANGUAGES CXX DESCRIPTION "A lightweight, cro
 
 # FHS install paths (/usr/bin, /etc/simple-tftpd, …)
 include(GNUInstallDirs)
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Installation prefix" FORCE)
 endif()
 
@@ -250,8 +250,31 @@ install(FILES LICENSE README.md
     DESTINATION ${CMAKE_INSTALL_DOCDIR}
 )
 
-# Linux: explicit FHS paths (/etc, /usr/lib/systemd) so CPack DEB includes them
-if(UNIX AND NOT APPLE)
+# Platform-specific config and service installation
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    install(FILES config/simple-tftpd.conf.example
+        DESTINATION etc/${PROJECT_NAME}
+    )
+    install(FILES deployment/configs/simple-tftpd.conf
+        DESTINATION etc/${PROJECT_NAME}
+        RENAME simple-tftpd.conf.example.json
+    )
+    install(DIRECTORY config/examples/
+        DESTINATION etc/${PROJECT_NAME}/examples
+        FILES_MATCHING PATTERN "*.example"
+    )
+    install(PROGRAMS deployment/rc.d/${PROJECT_NAME}
+        DESTINATION etc/rc.d
+    )
+    install(FILES deployment/freebsd/simple-tftpd.rc.conf.sample
+        DESTINATION etc/rc.conf.d
+        RENAME simple_tftpd.sample
+    )
+    install(PROGRAMS packaging/freebsd/post-install.sh
+        DESTINATION share/${PROJECT_NAME}
+        RENAME post-install.sh
+    )
+elseif(UNIX AND NOT APPLE)
     install(FILES config/simple-tftpd.conf.example
         DESTINATION /etc/${PROJECT_NAME}
     )

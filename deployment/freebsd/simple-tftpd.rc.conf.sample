@@ -1,0 +1,7 @@
+# Copy or merge into /etc/rc.conf, or install as /usr/local/etc/rc.conf.d/simple_tftpd
+#
+#   cp /usr/local/etc/rc.conf.d/simple_tftpd.sample /usr/local/etc/rc.conf.d/simple_tftpd
+#
+simple_tftpd_enable="NO"
+# simple_tftpd_user="simple-tftpd"
+# simple_tftpd_config="/usr/local/etc/simple-tftpd/simple-tftpd.conf"

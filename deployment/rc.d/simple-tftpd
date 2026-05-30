@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# PROVIDE: simple_tftpd
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+#
+# Enable in /etc/rc.conf or /usr/local/etc/rc.conf.d/simple_tftpd:
+#   simple_tftpd_enable="YES"
+#
+# Optional overrides:
+#   simple_tftpd_user="simple-tftpd"
+#   simple_tftpd_config="/usr/local/etc/simple-tftpd/simple-tftpd.conf"
+
+. /etc/rc.subr
+
+name="simple_tftpd"
+rcvar="simple_tftpd_enable"
+
+: "${simple_tftpd_user:=simple-tftpd}"
+: "${simple_tftpd_config:=/usr/local/etc/simple-tftpd/simple-tftpd.conf}"
+: "${simple_tftpd_command:=/usr/local/bin/simple-tftpd}"
+
+command="${simple_tftpd_command}"
+pidfile="/var/run/simple_tftpd.pid"
+
+start_cmd="simple_tftpd_start"
+stop_cmd="simple_tftpd_stop"
+status_cmd="simple_tftpd_status"
+
+simple_tftpd_start() {
+	if [ ! -x "${command}" ]; then
+		echo "${command} not found" >&2
+		return 1
+	fi
+	if [ ! -f "${simple_tftpd_config}" ]; then
+		echo "Config not found: ${simple_tftpd_config}" >&2
+		return 1
+	fi
+	/usr/sbin/daemon -p "${pidfile}" -u "${simple_tftpd_user}" \
+		"${command}" --foreground start --config "${simple_tftpd_config}"
+}
+
+simple_tftpd_stop() {
+	if [ -f "${pidfile}" ]; then
+		kill "$(cat "${pidfile}")" 2>/dev/null || true
+		rm -f "${pidfile}"
+	fi
+	pkill -x simple-tftpd 2>/dev/null || true
+}
+
+simple_tftpd_status() {
+	if [ -f "${pidfile}" ] && kill -0 "$(cat "${pidfile}")" 2>/dev/null; then
+		echo "${name} is running as pid $(cat "${pidfile}")."
+		return 0
+	fi
+	if pgrep -x simple-tftpd >/dev/null 2>&1; then
+		echo "${name} is running."
+		return 0
+	fi
+	echo "${name} is not running."
+	return 1
+}
+
+load_rc_config "${name}"
+run_rc_command "$1"
