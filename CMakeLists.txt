@@ -142,9 +142,9 @@ add_library(simple-tftpd-core ALIAS ${PROJECT_NAME}_lib)
 # Create executable
 add_executable(${PROJECT_NAME} ${VERSION_MAIN})
 
-# Link libraries
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_lib Threads::Threads)
-target_link_libraries(${PROJECT_NAME}_lib Threads::Threads)
+# Link libraries (use keyword signature consistently for target_link_libraries)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib)
+target_link_libraries(${PROJECT_NAME}_lib PUBLIC Threads::Threads)
 
 if(ENABLE_SSL)
     target_link_libraries(${PROJECT_NAME}_lib PUBLIC OpenSSL::SSL OpenSSL::Crypto)
