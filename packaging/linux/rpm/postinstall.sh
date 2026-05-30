@@ -33,6 +33,10 @@ chmod 640 "${CONFIG_FILE}" 2>/dev/null || true
 chown -R "${SERVICE_USER}:${SERVICE_USER}" "/var/lib/${PROJECT_NAME}" "/var/log/${PROJECT_NAME}"
 chown "${SERVICE_USER}:${SERVICE_USER}" "/var/tftp" 2>/dev/null || true
 
+if command -v setcap >/dev/null 2>&1; then
+    setcap 'cap_net_bind_service=+ep' /usr/bin/simple-tftpd 2>/dev/null || true
+fi
+
 if [ -x /etc/init.d/${PROJECT_NAME} ] && command -v chkconfig >/dev/null 2>&1; then
     chkconfig --add "${PROJECT_NAME}" 2>/dev/null || true
 fi

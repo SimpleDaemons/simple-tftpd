@@ -15,6 +15,10 @@ if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
         /etc/init.d/${PROJECT_NAME} stop 2>/dev/null || true
     fi
 
+    if command -v setcap >/dev/null 2>&1; then
+        setcap -r /usr/bin/simple-tftpd 2>/dev/null || true
+    fi
+
     if command -v update-rc.d >/dev/null 2>&1; then
         update-rc.d "${PROJECT_NAME}" remove 2>/dev/null || true
     fi

@@ -15,6 +15,7 @@ NAME=simple-tftpd
 DAEMON=/usr/bin/simple-tftpd
 CONFIG=/etc/simple-tftpd/simple-tftpd.conf
 PIDFILE=/run/simple-tftpd/simple-tftpd.pid
+RUNAS=simple-tftpd
 
 . /lib/lsb/init-functions 2>/dev/null || . /etc/rc.d/init.d/functions 2>/dev/null || true
 
@@ -22,11 +23,13 @@ test -x "$DAEMON" || exit 0
 test -f "$CONFIG" || exit 0
 
 do_start() {
+    mkdir -p "$(dirname "$PIDFILE")"
     if command -v start-stop-daemon >/dev/null 2>&1; then
-        start-stop-daemon --start --quiet --oknodo --pidfile "$PIDFILE" \
+        start-stop-daemon --start --quiet --oknodo --background --make-pidfile \
+            --pidfile "$PIDFILE" --chuid "$RUNAS:$RUNAS" \
             --exec "$DAEMON" -- --foreground start --config "$CONFIG"
     else
-        "$DAEMON" --daemon start --config "$CONFIG"
+        su -s /bin/sh "$RUNAS" -c "$DAEMON --foreground start --config $CONFIG" &
     fi
 }
 
@@ -35,7 +38,7 @@ do_stop() {
         start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 \
             --pidfile "$PIDFILE" --exec "$DAEMON" || true
     else
-        "$DAEMON" stop 2>/dev/null || killall simple-tftpd 2>/dev/null || true
+        "$DAEMON" stop 2>/dev/null || pkill -x simple-tftpd 2>/dev/null || true
     fi
 }
 
@@ -55,6 +58,11 @@ case "$1" in
         do_start
         ;;
     status)
+        if command -v systemctl >/dev/null 2>&1 \
+            && systemctl cat "${NAME}.service" >/dev/null 2>&1; then
+            systemctl status "${NAME}.service" --no-pager
+            exit $?
+        fi
         if command -v status_of_proc >/dev/null 2>&1; then
             status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
         fi

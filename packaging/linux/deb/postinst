@@ -39,6 +39,11 @@ if [ "$1" = "configure" ]; then
     chown "${SERVICE_USER}:${SERVICE_USER}" "/var/tftp" 2>/dev/null || true
     chmod 755 "/var/tftp" 2>/dev/null || true
 
+    # Allow binding to port 69 when started via SysV init (systemd uses AmbientCapabilities)
+    if command -v setcap >/dev/null 2>&1; then
+        setcap 'cap_net_bind_service=+ep' /usr/bin/simple-tftpd 2>/dev/null || true
+    fi
+
     # SysV init (update-rc.d on Debian)
     if [ -x /etc/init.d/${PROJECT_NAME} ] && command -v update-rc.d >/dev/null 2>&1; then
         update-rc.d "${PROJECT_NAME}" defaults 2>/dev/null || true
