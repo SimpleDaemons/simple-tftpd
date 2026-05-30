@@ -50,6 +50,7 @@ namespace simple_tftpd {
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
+    #include <sys/time.h>
     #include <unistd.h>
     #include <fcntl.h>
     #include <errno.h>
@@ -76,6 +77,7 @@ namespace simple_tftpd {
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
+    #include <sys/time.h>
     #include <unistd.h>
     #include <fcntl.h>
     #include <errno.h>
