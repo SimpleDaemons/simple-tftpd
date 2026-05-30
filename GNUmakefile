@@ -80,6 +80,21 @@ else ifeq ($(UNAME_S),Darwin)
     RMDIR = rm -rf
     MKDIR = mkdir -p
     CP = cp -r
+else ifeq ($(UNAME_S),FreeBSD)
+    PLATFORM = freebsd
+    CXX = clang++
+    CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -O2 -DNDEBUG
+    LDFLAGS = -lssl -lcrypto -lpthread
+    PARALLEL_JOBS = $(shell sysctl -n hw.ncpu)
+    INSTALL_PREFIX = /usr/local
+    CONFIG_DIR = $(INSTALL_PREFIX)/etc/$(PROJECT_NAME)
+    EXE_EXT =
+    LIB_EXT = .so
+    DLL_EXT = .so
+    RM = rm -rf
+    RMDIR = rm -rf
+    MKDIR = mkdir -p
+    CP = cp -r
 else
     PLATFORM = linux
     CXX = g++
@@ -127,6 +142,8 @@ endif
 # CMake configure flags (Linux: FHS prefix /usr for packaging)
 ifeq ($(PLATFORM),linux)
 CMAKE_PREFIX_FLAG = -DCMAKE_INSTALL_PREFIX=/usr
+else ifeq ($(PLATFORM),freebsd)
+CMAKE_PREFIX_FLAG = -DCMAKE_INSTALL_PREFIX=/usr/local
 else
 CMAKE_PREFIX_FLAG =
 endif
@@ -136,7 +153,7 @@ build: $(BUILD_DIR)-dir
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && cmake .. -G "Visual Studio 16 2019" -A x64 && cmake --build . --config Release
 else
-	cd $(BUILD_DIR) && cmake .. $(CMAKE_PREFIX_FLAG) && make -j$(PARALLEL_JOBS)
+	cd $(BUILD_DIR) && cmake .. $(CMAKE_PREFIX_FLAG) && $(MAKE) -j$(PARALLEL_JOBS)
 endif
 
 # Clean build
@@ -174,7 +191,7 @@ test: build
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && ctest --output-on-failure
 else
-	cd $(BUILD_DIR) && make test
+	cd $(BUILD_DIR) && $(MAKE) test
 endif
 
 # Generic package target (platform-specific)
@@ -218,6 +235,14 @@ CPACK_PACKAGES_CMD = \
 	fi && \
 	( ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm 2>/dev/null || \
 	  echo "  No packages found in $(DIST_DIR)" )
+else ifeq ($(PLATFORM),freebsd)
+CPACK_PACKAGES_CMD = \
+	@mkdir -p $(DIST_DIR) && \
+	echo "Building FreeBSD packages..." && \
+	( cd $(BUILD_DIR) && cpack -G FreeBSD ) && \
+	( ls $(BUILD_DIR)/*.pkg 1>/dev/null 2>&1 && mv $(BUILD_DIR)/*.pkg $(DIST_DIR)/ && \
+	  echo "  FreeBSD package created" ) || echo "  Warning: No FreeBSD package found" && \
+	( ls -lh $(DIST_DIR)/*.pkg 2>/dev/null || echo "  No packages found in $(DIST_DIR)" )
 else ifeq ($(PLATFORM),windows)
 CPACK_PACKAGES_CMD = \
 	@$(MKDIR) $(DIST_DIR) && \
@@ -241,14 +266,14 @@ dev-build: $(BUILD_DIR)-dir
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Debug && cmake --build . --config Debug
 else
-	cd $(BUILD_DIR) && cmake .. -DCMAKE_BUILD_TYPE=Debug && make -j$(PARALLEL_JOBS)
+	cd $(BUILD_DIR) && cmake .. -DCMAKE_BUILD_TYPE=Debug && $(MAKE) -j$(PARALLEL_JOBS)
 endif
 
 dev-test: dev-build
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && ctest --output-on-failure
 else
-	cd $(BUILD_DIR) && make test
+	cd $(BUILD_DIR) && $(MAKE) test
 endif
 
 # Static binary targets
@@ -257,14 +282,14 @@ static-build: $(BUILD_DIR)-dir
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LINKING=ON && cmake --build . --config Release
 else
-	cd $(BUILD_DIR) && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LINKING=ON $(CMAKE_PREFIX_FLAG) && make -j$(PARALLEL_JOBS)
+	cd $(BUILD_DIR) && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LINKING=ON $(CMAKE_PREFIX_FLAG) && $(MAKE) -j$(PARALLEL_JOBS)
 endif
 
 static-test: static-build
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && ctest --output-on-failure
 else
-	cd $(BUILD_DIR) && make test
+	cd $(BUILD_DIR) && $(MAKE) test
 endif
 
 # Create static binary packages (platform installers: deb/rpm, dmg/pkg, msi/zip)
@@ -394,7 +419,14 @@ ifeq ($(PLATFORM),macos)
 	sudo port install openssl jsoncpp cmake
 else ifeq ($(PLATFORM),linux)
 	@echo "Installing dependencies on Linux..."
-	$(SCRIPTS_DIR)/build-linux.sh --deps
+	bash $(SCRIPTS_DIR)/build-linux.sh --deps
+else ifeq ($(PLATFORM),freebsd)
+	@echo "Installing dependencies on FreeBSD..."
+	@if command -v sudo >/dev/null 2>&1; then \
+		sudo pkg install -y cmake gmake openssl jsoncpp pkgconf git; \
+	else \
+		pkg install -y cmake gmake openssl jsoncpp pkgconf git; \
+	fi
 else ifeq ($(PLATFORM),windows)
 	@echo "Installing dependencies on Windows..."
 	@echo "Please run: scripts\\build-windows.bat --deps"
@@ -419,6 +451,13 @@ else ifeq ($(PLATFORM),linux)
 	sudo apt-get update
 	sudo apt-get install -y clang-format cppcheck python3-pip
 	pip3 install bandit semgrep
+else ifeq ($(PLATFORM),freebsd)
+	@echo "Installing development tools on FreeBSD..."
+	@if command -v sudo >/dev/null 2>&1; then \
+		sudo pkg install -y llvm cppcheck python3; \
+	else \
+		pkg install -y llvm cppcheck python3; \
+	fi
 else ifeq ($(PLATFORM),windows)
 	@echo "Installing development tools on Windows..."
 	@echo "Please run: scripts\\build-windows.bat --dev-deps"
