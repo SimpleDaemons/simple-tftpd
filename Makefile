@@ -1,12 +1,11 @@
-# BSD make compatibility shim — full build rules live in GNUmakefile.
-# FreeBSD and other BSD make hosts: pkg install gmake (or use this shim).
+# BSD make (bmake) compatibility shim — full build rules live in GNUmakefile.
+# FreeBSD: pkg install gmake  (then: gmake deps, or make deps via this shim)
 #
-# GNU make reads GNUmakefile first when present; BSD make uses this file and
-# delegates to gmake.
+# GNU make reads GNUmakefile first when present; bmake uses this file only.
 
 GMAKE ?= gmake
 
-.PHONY: all
+# Default goal when invoked as plain "make"
 all:
 	@command -v $(GMAKE) >/dev/null 2>&1 || { \
 		echo "ERROR: GNU Make ($(GMAKE)) is required." >&2; \
@@ -15,10 +14,11 @@ all:
 	}
 	@$(GMAKE) -f GNUmakefile all
 
-%:
+# bmake: delegate any other target (deps, static-package, …) to GNUmakefile
+.DEFAULT:
 	@command -v $(GMAKE) >/dev/null 2>&1 || { \
 		echo "ERROR: GNU Make ($(GMAKE)) is required." >&2; \
-		echo "  FreeBSD: pkg install gmake && gmake $(MAKECMDGOALS)" >&2; \
+		echo "  FreeBSD: pkg install gmake && gmake ${.TARGET}" >&2; \
 		exit 1; \
 	}
-	@$(GMAKE) -f GNUmakefile $@
+	@$(GMAKE) -f GNUmakefile ${.TARGET}
