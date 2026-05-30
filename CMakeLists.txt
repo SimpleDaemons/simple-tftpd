@@ -177,6 +177,38 @@ target_include_directories(${PROJECT_NAME}_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Detect static libstdc++ for GCC (on EL9 the .a is in CRB: /usr/lib/gcc/.../libstdc++.a)
+set(HAVE_STATIC_LIBSTDCXX FALSE)
+if(ENABLE_STATIC_LINKING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER} -print-file-name=libstdc++.a
+        OUTPUT_VARIABLE _stdcpp_static_candidate
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(IS_ABSOLUTE "${_stdcpp_static_candidate}" AND EXISTS "${_stdcpp_static_candidate}")
+        set(STDCPP_STATIC_LIB "${_stdcpp_static_candidate}")
+    else()
+        find_library(STDCPP_STATIC_LIB NAMES libstdc++.a
+            PATHS /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib)
+        if(NOT STDCPP_STATIC_LIB OR NOT STDCPP_STATIC_LIB MATCHES "\\.a$")
+            file(GLOB _gcc_lib_dirs LIST_DIRECTORIES true "/usr/lib/gcc/*/*")
+            find_library(STDCPP_STATIC_LIB NAMES libstdc++.a PATHS ${_gcc_lib_dirs})
+        endif()
+    endif()
+    if(STDCPP_STATIC_LIB AND EXISTS "${STDCPP_STATIC_LIB}")
+        set(HAVE_STATIC_LIBSTDCXX TRUE)
+        message(STATUS "Static libstdc++: ${STDCPP_STATIC_LIB}")
+    else()
+        message(WARNING
+            "Static libstdc++ not found; linking libstdc++ dynamically.\n"
+            "  EL9/Rocky/Alma: sudo crb enable && sudo dnf install libstdc++-static\n"
+            "  EL8:            sudo dnf config-manager --set-enabled powertools && sudo dnf install libstdc++-static\n"
+            "  Debian/Ubuntu:  sudo apt-get install libstdc++-static\n"
+            "  Or run: make deps")
+    endif()
+endif()
+
 # Compiler-specific options
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W3 /WX)
@@ -185,12 +217,9 @@ if(MSVC)
     endif()
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-unused-private-field -Wno-reorder-ctor -Wno-unused-but-set-variable)
-    if(ENABLE_STATIC_LINKING)
-        # Only apply static linking flags for GCC, not clang
-        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            target_compile_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
-            target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
-        endif()
+    if(ENABLE_STATIC_LINKING AND HAVE_STATIC_LIBSTDCXX)
+        target_compile_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
+        target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
     endif()
 endif()
 
@@ -204,16 +233,6 @@ if(ENABLE_STATIC_LINKING)
     if(ENABLE_JSON)
         # Force static linking for jsoncpp
         set(JSONCPP_USE_STATIC_LIBS TRUE)
-    endif()
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        find_library(STDCPP_STATIC_LIB NAMES libstdc++.a stdc++
-            PATHS /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib)
-        if(NOT STDCPP_STATIC_LIB OR NOT STDCPP_STATIC_LIB MATCHES "\\.a$")
-            message(FATAL_ERROR
-                "Static libstdc++ not found (required for ENABLE_STATIC_LINKING).\n"
-                "  RHEL/CentOS/Rocky: sudo dnf install libstdc++-static   (or: make deps)\n"
-                "  Debian/Ubuntu:     sudo apt-get install libstdc++-static")
-        endif()
     endif()
 endif()
 

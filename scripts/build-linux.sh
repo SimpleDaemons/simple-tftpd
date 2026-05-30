@@ -108,6 +108,44 @@ detect_distro() {
     fi
 }
 
+# libstdc++-static on EL8/9 lives in PowerTools/CRB, not base repos
+enable_rhel_crb_repo() {
+    if command_exists crb; then
+        sudo crb enable 2>/dev/null || true
+    fi
+
+    if command_exists dnf; then
+        for repo in crb powertools PowerTools ol9_codeready_builder; do
+            sudo dnf config-manager --set-enabled "$repo" 2>/dev/null || true
+        done
+    elif command_exists yum; then
+        sudo yum config-manager --set-enabled powertools 2>/dev/null || \
+            sudo yum config-manager --set-enabled PowerTools 2>/dev/null || true
+    fi
+
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        if [ "${ID}" = "rhel" ] && command_exists subscription-manager; then
+            rhel_ver=$(rpm -E %rhel 2>/dev/null)
+            arch=$(uname -m)
+            sudo subscription-manager repos --enable \
+                "codeready-builder-for-rhel-${rhel_ver}-${arch}-rpms" 2>/dev/null || true
+        fi
+    fi
+}
+
+install_libstdc_static_rpm() {
+    enable_rhel_crb_repo
+
+    if command_exists dnf; then
+        sudo dnf install -y libstdc++-static || \
+            sudo dnf --enablerepo='crb,powertools,PowerTools' install -y libstdc++-static
+    else
+        sudo yum install -y libstdc++-static || \
+            sudo yum --enablerepo=powertools install -y libstdc++-static
+    fi
+}
+
 # Function to install dependencies based on package manager
 install_dependencies() {
     print_status "Installing build dependencies using $PACKAGE_MANAGER..."
@@ -185,14 +223,11 @@ install_dependencies() {
             fi
             
             # Static linking and RPM packaging (make static-package)
+            install_libstdc_static_rpm
             if command_exists dnf; then
-                sudo dnf install -y \
-                    libstdc++-static \
-                    rpm-build
+                sudo dnf install -y rpm-build
             else
-                sudo yum install -y \
-                    libstdc++-static \
-                    rpm-build
+                sudo yum install -y rpm-build
             fi
 
             # Install optional development tools
