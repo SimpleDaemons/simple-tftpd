@@ -171,8 +171,8 @@ ifeq ($(PLATFORM),macos)
 CPACK_PACKAGES_CMD = \
 	@mkdir -p $(DIST_DIR) && \
 	echo "Building macOS packages..." && \
-	cd $(BUILD_DIR) && cpack -G DragNDrop && \
-	cd $(BUILD_DIR) && cpack -G productbuild && \
+	( cd $(BUILD_DIR) && cpack -G DragNDrop ) && \
+	( cd $(BUILD_DIR) && cpack -G productbuild ) && \
 	echo "Moving packages to $(DIST_DIR)..." && \
 	( ls $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg 1>/dev/null 2>&1 && \
 	  mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.dmg $(DIST_DIR)/ && echo "  DMG package moved" ) || \
@@ -190,16 +190,16 @@ CPACK_PACKAGES_CMD = \
 	echo "Building Linux packages..." && \
 	if command -v rpmbuild >/dev/null 2>&1; then \
 		echo "  Building RPM..." && \
-		cd $(BUILD_DIR) && cpack -G RPM && \
-		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm $(DIST_DIR)/ 2>/dev/null || true && \
+		( cd $(BUILD_DIR) && cpack -G RPM ) && \
+		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.rpm $(DIST_DIR)/ && \
 		echo "  RPM package created"; \
 	else \
 		echo "  Skipping RPM (rpmbuild not available)"; \
 	fi && \
 	if command -v dpkg-deb >/dev/null 2>&1; then \
 		echo "  Building DEB..." && \
-		cd $(BUILD_DIR) && cpack -G DEB && \
-		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/ 2>/dev/null || true && \
+		( cd $(BUILD_DIR) && cpack -G DEB ) && \
+		mv $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.deb $(DIST_DIR)/ && \
 		echo "  DEB package created"; \
 	else \
 		echo "  Skipping DEB (dpkg-deb not available)"; \
@@ -210,8 +210,8 @@ else ifeq ($(PLATFORM),windows)
 CPACK_PACKAGES_CMD = \
 	@$(MKDIR) $(DIST_DIR) && \
 	echo "Building Windows packages..." && \
-	cd $(BUILD_DIR) && cpack -G WIX && \
-	cd $(BUILD_DIR) && cpack -G ZIP && \
+	( cd $(BUILD_DIR) && cpack -G WIX ) && \
+	( cd $(BUILD_DIR) && cpack -G ZIP ) && \
 	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.msi $(DIST_DIR)/ 2>/dev/null || true && \
 	$(CP) $(BUILD_DIR)/$(PROJECT_NAME)-$(VERSION)-*.zip $(DIST_DIR)/ 2>/dev/null || true && \
 	echo "Windows packages created: MSI and ZIP" && \
