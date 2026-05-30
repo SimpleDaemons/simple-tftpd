@@ -8,9 +8,7 @@ project(simple-tftpd VERSION 0.3.0 LANGUAGES CXX DESCRIPTION "A lightweight, cro
 # FHS install paths (/usr/bin, /etc/simple-tftpd, …)
 include(GNUInstallDirs)
 if(UNIX AND NOT APPLE)
-    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-        set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Installation prefix" FORCE)
-    endif()
+    set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Installation prefix" FORCE)
 endif()
 
 # Set C++ standard
@@ -221,34 +219,39 @@ install(DIRECTORY include/
     FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
 
-# Configuration: /etc/simple-tftpd/ with examples
-install(FILES config/simple-tftpd.conf.example
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}
-)
-install(FILES deployment/configs/simple-tftpd.conf
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}
-    RENAME simple-tftpd.conf.example.json
-)
-install(DIRECTORY config/examples/
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}/examples
-    FILES_MATCHING PATTERN "*.example"
-)
-
 install(FILES LICENSE README.md
     DESTINATION ${CMAKE_INSTALL_DOCDIR}
 )
 
-# Linux service integration (systemd + SysV init)
+# Linux: explicit FHS paths (/etc, /usr/lib/systemd) so CPack DEB includes them
 if(UNIX AND NOT APPLE)
+    install(FILES config/simple-tftpd.conf.example
+        DESTINATION /etc/${PROJECT_NAME}
+    )
+    install(FILES deployment/configs/simple-tftpd.conf
+        DESTINATION /etc/${PROJECT_NAME}
+        RENAME simple-tftpd.conf.example.json
+    )
+    install(DIRECTORY config/examples/
+        DESTINATION /etc/${PROJECT_NAME}/examples
+        FILES_MATCHING PATTERN "*.example"
+    )
     install(FILES
         deployment/systemd/${PROJECT_NAME}.service
         deployment/systemd/${PROJECT_NAME}@.service
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system
+        DESTINATION /usr/lib/systemd/system
     )
     install(PROGRAMS deployment/init.d/${PROJECT_NAME}
-        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/init.d
+        DESTINATION /etc/init.d
     )
 elseif(APPLE)
+    install(FILES config/simple-tftpd.conf.example
+        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}
+    )
+    install(DIRECTORY config/examples/
+        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME}/examples
+        FILES_MATCHING PATTERN "*.example"
+    )
     # Install launchd plist file
     # Use relative path for package creation - CPack will handle proper installation path
     install(FILES deployment/launchd/com.simpledaemons.simple-tftpd.plist
@@ -385,7 +388,8 @@ if(ENABLE_PACKAGING)
         set(CPACK_RPM_PACKAGE_CONFLICTS "ntp")
         set(CPACK_RPM_PACKAGE_PROVIDES "${PROJECT_NAME}")
 
-        set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+        set(CPACK_PACKAGING_INSTALL_PREFIX "/")
+        set(CPACK_SET_DESTDIR TRUE)
         set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
             "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/deb/postinst"
             "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/deb/prerm"

@@ -119,12 +119,19 @@ else
 	$(MKDIR) $(BUILD_DIR)
 endif
 
+# CMake configure flags (Linux: FHS prefix /usr for packaging)
+ifeq ($(PLATFORM),linux)
+CMAKE_PREFIX_FLAG = -DCMAKE_INSTALL_PREFIX=/usr
+else
+CMAKE_PREFIX_FLAG =
+endif
+
 # Build using CMake
 build: $(BUILD_DIR)-dir
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && cmake .. -G "Visual Studio 16 2019" -A x64 && cmake --build . --config Release
 else
-	cd $(BUILD_DIR) && cmake .. && make -j$(PARALLEL_JOBS)
+	cd $(BUILD_DIR) && cmake .. $(CMAKE_PREFIX_FLAG) && make -j$(PARALLEL_JOBS)
 endif
 
 # Clean build
@@ -245,7 +252,7 @@ static-build: $(BUILD_DIR)-dir
 ifeq ($(PLATFORM),windows)
 	cd $(BUILD_DIR) && cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LINKING=ON && cmake --build . --config Release
 else
-	cd $(BUILD_DIR) && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LINKING=ON && make -j$(PARALLEL_JOBS)
+	cd $(BUILD_DIR) && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_STATIC_LINKING=ON $(CMAKE_PREFIX_FLAG) && make -j$(PARALLEL_JOBS)
 endif
 
 static-test: static-build
