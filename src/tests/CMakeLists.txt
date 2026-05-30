@@ -35,16 +35,12 @@ if(GTest_FOUND)
     # Unit test executable
     add_executable(simple-tftpd-tests ${UNIT_TEST_SOURCES})
     
-    # Link against the core library
+    # Link against the core library (jsoncpp/openssl propagate via PUBLIC deps)
     target_link_libraries(simple-tftpd-tests 
         simple-tftpd-core
         ${GTEST_LIBRARIES}
         ${PLATFORM_LIBRARIES}
     )
-    
-    if(JSONCPP_FOUND)
-        target_link_libraries(simple-tftpd-tests ${JSONCPP_LIBRARIES})
-    endif()
     
     # Include directories
     target_include_directories(simple-tftpd-tests PRIVATE
@@ -95,16 +91,12 @@ if(GTest_FOUND)
     # Integration test executable
     add_executable(simple-tftpd-integration-tests ${INTEGRATION_TEST_SOURCES})
     
-    # Link against the core library
+    # Link against the core library (jsoncpp/openssl propagate via PUBLIC deps)
     target_link_libraries(simple-tftpd-integration-tests 
         simple-tftpd-core
         ${GTEST_LIBRARIES}
         ${PLATFORM_LIBRARIES}
     )
-    
-    if(JSONCPP_FOUND)
-        target_link_libraries(simple-tftpd-integration-tests ${JSONCPP_LIBRARIES})
-    endif()
     
     # Include directories for integration tests
     target_include_directories(simple-tftpd-integration-tests PRIVATE

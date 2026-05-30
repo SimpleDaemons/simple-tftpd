@@ -147,29 +147,24 @@ target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_lib Threads::Threads)
 target_link_libraries(${PROJECT_NAME}_lib Threads::Threads)
 
 if(ENABLE_SSL)
-    target_link_libraries(${PROJECT_NAME} OpenSSL::SSL OpenSSL::Crypto)
-    target_link_libraries(${PROJECT_NAME}_lib OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(${PROJECT_NAME}_lib PUBLIC OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
 if(ENABLE_JSON)
+    set(JSONCPP_LINK_LIB "")
     if(ENABLE_STATIC_LINKING)
-        # For static linking, find the static library directly
-        find_library(JSONCPP_STATIC_LIB jsoncpp PATHS /opt/local/lib /usr/local/lib /usr/lib)
-        if(JSONCPP_STATIC_LIB)
-            target_link_libraries(${PROJECT_NAME} ${JSONCPP_STATIC_LIB})
-            target_link_libraries(${PROJECT_NAME}_lib ${JSONCPP_STATIC_LIB})
-        else()
-            target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES})
-            target_link_libraries(${PROJECT_NAME}_lib ${JSONCPP_LIBRARIES})
-        endif()
-    else()
-        target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES})
-        target_link_libraries(${PROJECT_NAME}_lib ${JSONCPP_LIBRARIES})
+        find_library(JSONCPP_LINK_LIB NAMES libjsoncpp.a jsoncpp
+            HINTS ${JSONCPP_LIBRARY_DIRS}
+            PATHS /opt/local/lib /usr/local/lib /usr/lib64 /usr/lib)
     endif()
-    target_include_directories(${PROJECT_NAME} PRIVATE ${JSONCPP_INCLUDE_DIRS})
-    target_include_directories(${PROJECT_NAME}_lib PRIVATE ${JSONCPP_INCLUDE_DIRS})
+    if(NOT JSONCPP_LINK_LIB)
+        set(JSONCPP_LINK_LIB ${JSONCPP_LIBRARIES})
+    endif()
+
+    target_link_libraries(${PROJECT_NAME}_lib PUBLIC ${JSONCPP_LINK_LIB})
+    target_link_directories(${PROJECT_NAME}_lib PUBLIC ${JSONCPP_LIBRARY_DIRS})
+    target_include_directories(${PROJECT_NAME}_lib PUBLIC ${JSONCPP_INCLUDE_DIRS})
     target_compile_options(${PROJECT_NAME}_lib PRIVATE ${JSONCPP_CFLAGS_OTHER})
-    target_link_directories(${PROJECT_NAME}_lib PRIVATE ${JSONCPP_LIBRARY_DIRS})
 endif()
 
 # Include directories
