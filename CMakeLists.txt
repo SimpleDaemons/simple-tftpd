@@ -22,6 +22,7 @@ elseif(APPLE)
     set(PLATFORM_NAME "macOS")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(PLATFORM_NAME "FreeBSD")
+    add_compile_definitions(SIMPLE_TFTPD_FREEBSD=1)
 elseif(UNIX)
     set(PLATFORM_NAME "Linux")
 endif()
@@ -380,6 +381,11 @@ if(ENABLE_PACKAGING)
         # PKG settings
         set(CPACK_PRODUCTBUILD_IDENTIFIER "com.simpledaemons.${PROJECT_NAME}")
         set(CPACK_PRODUCTBUILD_PACKAGE_NAME "${PROJECT_NAME}")
+
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        set(CPACK_GENERATOR "FreeBSD")
+        set(CPACK_PACKAGING_INSTALL_PREFIX "/")
+        set(CPACK_SET_DESTDIR TRUE)
 
     else()
         # Linux DEB and RPM packages
